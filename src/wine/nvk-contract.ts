@@ -1,6 +1,7 @@
 import { join } from "path-browserify";
 
-export const NVK_RUNTIME_ID = "local-wine-11.0-dxvk-3.1.1-nvk";
+// DXVK is selected by the installed driver manifest, not this Wine distro ID.
+export const NVK_RUNTIME_ID = "driver-nvk-wine-11.0-1";
 
 export function supportsNVKChannel(channel: string): boolean {
   return ["napos", "napcn", "hk4eos", "hk4ecn", "hkrpgos", "hkrpgcn"].includes(

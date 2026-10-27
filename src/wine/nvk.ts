@@ -1,6 +1,7 @@
 import { join } from "path-browserify";
 import { exec, fileOrDirExists, mkdirp, resolve, writeFile } from "@utils";
 import type { Wine } from "./wine";
+import { loadNVKWine } from "./nvk-wine";
 
 export interface NVKRuntime {
   root: string;
@@ -21,7 +22,7 @@ async function validateRuntime(root: string) {
   const manifestPath = join(root, "nvk-wine-runtime.json");
   if (!(await fileOrDirExists(manifestPath))) {
     throw new Error(
-      "The local NVIDIA NVK runtime is missing. Install the complete runtime before selecting this backend."
+      "The NVIDIA NVK runtime is missing. Install this driver's Wine/NVK runtime at /Library/GPUBundles/nvmtl/wine before selecting this backend."
     );
   }
   const manifest = JSON.parse(
@@ -44,40 +45,29 @@ async function validateRuntime(root: string) {
 }
 
 export async function loadNVKRuntime(
-  bundleRoot = resolve("./nvk-runtime"),
-  selectedRoot?: string
+  root = INSTALLED_NVK_ROOT
 ): Promise<NVKRuntime> {
-  // Wine stays pinned to the app's validated bundle. The driver's compact
-  // provider contains Vulkan/DXVK, not another Wine installation.
-  bundleRoot = resolve(bundleRoot);
-  const bundle = await validateRuntime(bundleRoot);
-  const wine = bundle.checked.wine_executable;
-  if (typeof wine !== "string" || !wine.startsWith("/")) {
-    throw new Error(
-      "The YAAGL NVK bundle must include its compatible Wine executable."
-    );
-  }
-  const root = selectedRoot
-    ? resolve(selectedRoot)
-    : (await fileOrDirExists(INSTALLED_NVK_ROOT))
-    ? INSTALLED_NVK_ROOT
-    : bundleRoot;
-  // If an installed provider exists but is invalid, report it. Silently using
-  // the older bundled renderer would hide a broken or mismatched installation.
-  const provider = root === bundleRoot ? bundle : await validateRuntime(root);
-  if (root !== bundleRoot && provider.manifest.kind !== "provider") {
-    throw new Error(
-      "The installed NVIDIA NVK runtime must be a compact driver provider."
-    );
-  }
+  const provider = await loadNVKProvider(root);
+  const { wine, wineRoot } = await loadNVKWine();
   return {
-    root,
-    wineRoot: bundleRoot,
+    root: provider.root,
+    wineRoot,
     helper: provider.helper,
     wine,
     id: provider.checked.runtime_id,
     manifest: provider.manifest,
   };
+}
+
+export async function loadNVKProvider(root = INSTALLED_NVK_ROOT) {
+  root = resolve(root);
+  const provider = await validateRuntime(root);
+  if (provider.manifest.kind !== "provider") {
+    throw new Error(
+      "The installed NVIDIA NVK runtime must be a compact driver provider."
+    );
+  }
+  return provider;
 }
 
 export async function initializeNVKState() {
@@ -98,12 +88,7 @@ export async function initializeNVKState() {
 export async function prepareNVKPrefix(
   wine: Pick<Wine, "prefix" | "attributes">
 ) {
-  const runtime = wine.attributes.nvkWineRoot
-    ? await loadNVKRuntime(
-        wine.attributes.nvkWineRoot,
-        wine.attributes.nvkRuntimeRoot
-      )
-    : await loadNVKRuntime(wine.attributes.nvkRuntimeRoot);
+  const runtime = await loadNVKRuntime(wine.attributes.nvkRuntimeRoot);
   await exec([runtime.helper, "install", runtime.root, wine.prefix]);
   return runtime;
 }

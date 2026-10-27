@@ -1,164 +1,117 @@
 # YAAGL NVK
 
-This fork adds a native NVIDIA Vulkan backend for **Zenless Zone Zero, Genshin
-Impact and Honkai: Star Rail**, in their global and CN channels. It uses the
-Wine/NVK runtime maintained in [HighDelay's NVIDIA driver fork](https://github.com/HighDelay/nvidia-macos-driver).
+Native NVIDIA Vulkan for **Zenless Zone Zero, Genshin Impact and Honkai: Star Rail**,
+including global/CN launch configurations, with [HighDelay's NVIDIA driver](https://github.com/HighDelay/nvidia-macos-driver).
 
 ```text
-Windows D3D11 game → DXVK → Wine Vulkan → native NVK → NVIDIA GPU
+D3D11 game → DXVK → Wine Vulkan bridge → native NVK → NVIDIA GPU
 ```
 
-Game rendering bypasses MoltenVK and NVMTL's Metal shader conversion. Wine still
-supplies Windows compatibility and DXVK still translates D3D11/shaders to
-Vulkan/SPIR-V. Metal supplies the macOS display drawable; presentation uses a GPU
-copy and currently waits for its completion. It is not a zero-copy path, and fewer
-translation layers do not establish an FPS gain.
+Game rendering bypasses MoltenVK and NVMTL shader conversion. Wine, DXVK's
+D3D11/SPIR-V conversion and NVK compilation remain. Completed frames use a GPU
+copy into a macOS Metal drawable, with a CPU completion wait. Fewer layers do not
+establish a measured FPS gain.
 
-The local packages include a DXVK shared-resource fallback repair and use legacy
-descriptor sets. ZZZ world rendering, characters and FPS text were confirmed with
-these settings on RTX 2060 SUPER / Tahoe 26.7.1. GI/HSR gameplay and sustained
-stability/performance comparisons remain unqualified.
+## Install
 
-## Install and select
+Requires Intel macOS **15.5+ / Tahoe**, a supported NVIDIA GPU and this fork's
+matching driver **with the Wine/NVK runtime installed**.
 
-Requires Intel x86_64 macOS, a compatible installed NVIDIA driver, and the complete
-matching Wine/NVK runtime. The renderer targets Sequoia 15.5 or newer; testing so far
-is on Tahoe 26.7.1 / RTX 2060 SUPER.
+1. Install the [driver package](https://github.com/HighDelay/nvidia-macos-driver/releases) and reboot.
+2. Extract the YAAGL NVK archive. In the combined build, open `ZZZ/`, `GI/` or `HSR/`.
+3. Open **Start YAAGL NVK.command**. Select **Settings → Wine → NVIDIA NVK + DXVK (local, experimental)**.
+4. Setup verifies the installed driver runtime, downloads the pinned compatible
+   Wine **11.0-1** archive, verifies its SHA-256 and prepares a private `wine-nvk`
+   installation. It initializes its separate `wineprefix-nvk` and installs the
+   driver's matched DXVK pair with original-file backups.
+5. Choose/install the game directory and launch. D3D11, descriptor sets and the
+   FPS/frame-time/device overlay are selected automatically. Use SDR and leave
+   ReShade off for this backend.
 
-1. Extract the complete game-specific launcher package. Keep its app,
-   `launcher-data/` and `runtime/` together. For the combined release, keep the
-   top-level shared `runtime/` beside `ZZZ/`, `GI/` and `HSR/`, then open the
-   desired game's folder.
-2. Open **Start YAAGL NVK.command** or its game-specific app.
-3. Select **Settings → Wine → NVIDIA NVK + DXVK (local, experimental)**. Let the
-   launcher initialize its own `wineprefix-nvk` prefix.
-4. Download/select the game directory, then launch. Use SDR and leave ReShade off
-   for this backend. D3D11 is forced; a saved D3D12 preference cannot override it.
-   The new packages enable **Steam Patch** and **timeout fix** for all three game
-   profiles. The tested ZZZ Wine 11.0-1 profile needed both to get past its separate
-   startup crash. HSR retains its Jadeite launcher step inside the Steam route.
-5. Check the DXVK HUD and logs. The actual Vulkan driver/device must identify
-   NVK/NVIDIA and loaded-image paths must point to this runtime's two NVK libraries.
+**The launcher archive contains no Wine, NVK or DXVK runtime.** Both NVK and the
+patched x64 `d3d11.dll` / `dxgi.dll` come from **`/Library/GPUBundles/nvmtl/wine`**.
+There is no bundled provider fallback or separate DXVK download. To update DXVK,
+update both DLLs in the driver runtime and regenerate its manifest/checksums;
+YAAGL uses that installed pair. Close the game and restore the old DLL setup
+before selecting a different pair.
 
-The backend **prefers `/Library/GPUBundles/nvmtl/wine`** from the driver for its
-Vulkan provider and matched DXVK pair. It still uses the compatible Wine executable
-in the app's bundle via `launcher-data/nvk-runtime`; the driver provider does not
-contain Wine. If the driver directory is absent, the complete bundled runtime is
-used instead. An installed provider with missing files, a bad checksum or invalid
-signature stops launch with an error rather than silently selecting an older renderer.
+Wine is downloaded directly from YAAGL's `wine-crossover-11.0-1-signed` release,
+SHA-256 `89fa7e90fb626523a90d5867a03c6be785d017176739c6320a3b86c7838c3a35`.
+Setup applies the launcher's existing Wine INF certificate fragment and re-signs
+only the two private Wine loaders with `com.apple.security.get-task-allow`, as
+required by the tested Tahoe task-port exchange. Installed files/hashes and the
+vendor archive identity are recorded in `launcher-data/wine-nvk/nvk-wine.json`.
+No ordinary Wine tree, CrossOver installation, macOS certificates, hosts file or
+boot arguments change. The vendor release does not identify its exact CrossOver
+patch revision; the launcher does not redistribute that binary archive.
 
-The selected provider and Wine bundle paths are recorded separately in `runtime.json`.
-Moving from the bundled provider to the driver provider preserves original-file
-backups when both have the exact same DXVK pair. For a different pair, restore the
-old setup first, then let the launcher install the new pair after the game exits.
+The packages enable YAAGL's existing **Steam Patch** and **timeout fix** options.
+The tested ZZZ profile needed both for its separate startup crash. HSR keeps its
+Jadeite step inside the Steam launch route. ZZZ gameplay is verified on RTX 2060
+SUPER / Tahoe 26.7.1; **GI/HSR gameplay is not qualified**.
 
-The NVK backend defaults to `dxvk.enableDescriptorBuffer = False`: the descriptor
-buffer path rendered ZZZ's environment but lost characters and HUD text; switching
-to descriptor sets restored both in the controlled game test. Logs should show
-`Binding model: Legacy`. The underlying descriptor-buffer defect has not yet been
-isolated, so this is a scoped compatibility setting rather than a Mesa repair.
+## Rendering settings and logs
 
-The FPS, frame-time graph and device HUD are enabled at 1.25× scale by default.
-For a diagnostic launch, host `DXVK_HUD` and `DXVK_CONFIG` values are forwarded;
-explicit caller values take priority. `DXVK_HUD=0` disables HUD items. Other
-graphics backends do not receive these NVK defaults.
+`dxvk.enableDescriptorBuffer = False` remains the default: descriptor buffers lost
+ZZZ characters and HUD text; descriptor sets restored both. DXVK logs should say
+`Binding model: Legacy`. FPS/device/frame-time HUD defaults to 1.25× scale.
+Host `DXVK_HUD` and `DXVK_CONFIG` values are forwarded for diagnostics; `DXVK_HUD=0`
+hides the overlay. Other Wine backends keep their existing settings.
 
-Each packaged game has its own launcher-data directory, prefix, registry, logs and
-caches. The same immutable runtime build can be copied into each package. Ordinary
-YAAGL backends continue using their original prefix. No global Vulkan provider or
-installed Minecraft runtime is replaced.
+Each launcher has separate data, prefix, caches and logs. Every game run records
+`runtime.json` and DXVK logs beside its normal log in a `.nvk` folder. The record
+identifies the installed provider and private Wine paths separately. Library logs
+must identify the installed `libnvk_wine.dylib` and `libnvk_renderer.dylib`.
+The runtime's `libMoltenVK.dylib` is an alias to its NVK frontend, not MoltenVK.
+DXVK may emulate an AMD PCI vendor to a D3D11 app; check the underlying Vulkan
+NVK/NVIDIA device rather than that emulated vendor alone.
 
-## Validation status
+## Restore
 
-| Check | Result |
-|---|---|
-| Native and Windows Vulkan GPU fill/readback | PASS on RTX 2060 SUPER / Tahoe |
-| Windows presentation, resize/minimize, two surfaces | PASS |
-| DXVK 3.1.1 textured/depth/blended D3D11 probe | PASS, 300 presents and 11 readback checks |
-| Actual game launch-program routing | Mocked tests cover all three games, native D3D11 arguments, existing DXMT behavior and all Steam routes, including HSR's Jadeite wrapper |
-| ZZZ gameplay rendering | User confirms environment, characters and FPS HUD work with repaired DXVK, descriptor sets and Steam Patch/timeout options |
-| GI and HSR gameplay | NOT RUN |
-| Controlled FPS comparison | NOT RUN |
-
-Channel wiring and a rendering probe do not qualify a game. Each title still
-needs sustained gameplay, scene-transition, video and repeat-launch tests; GI and
-HSR additionally need their first actual game-rendering test.
-Existing non-graphics game startup/update workflows are retained.
-
-## Logs and rollback
-
-Each game run creates DXVK logs and a `runtime.json` beside its normal game log,
-in a `.nvk` folder under `launcher-data/logs/`. Library startup output records the
-actual provider. DXVK may expose an AMD PCI vendor to D3D11 as its normal NVIDIA
-workaround; check its underlying Vulkan device log rather than that vendor alone.
-
-Quit the game before changing backends. Select a previous Wine distribution to
-return to its ordinary prefix. To restore the original DLLs in the NVK prefix:
+Quit the game and its Wine processes. From a game launcher's folder:
 
 ```sh
-./runtime/bin/nvk-runtime restore "$(pwd)/runtime" "$(pwd)/launcher-data/wineprefix-nvk"
+/Library/GPUBundles/nvmtl/wine/bin/nvk-runtime restore \
+  /Library/GPUBundles/nvmtl/wine "$(pwd)/launcher-data/wineprefix-nvk"
 ```
 
-Run that from the extracted package root after its Wine processes exit. Setup
-journals and checks both originals before restoring either. Unexpected modified
-DLLs or backups cause a refusal; leave them available for inspection. Runtime
-integrity can be checked with `./runtime/bin/nvk-runtime check "$(pwd)/runtime"`.
-For the installed provider, use
-`/Library/GPUBundles/nvmtl/wine/bin/nvk-runtime check /Library/GPUBundles/nvmtl/wine`.
+The helper validates both originals before replacing either DLL. It refuses
+unexpected modified DLLs/backups. The journal remains restorable after updating
+the runtime. A byte-identical DLL pair may adopt a new runtime identity without
+losing originals. Selecting another Wine distribution uses its ordinary prefix.
 
-Do not publish account state, prefixes or raw unfiltered launcher console logs.
-The latter can include local RPC credentials. Release archives should be built
-from fresh output folders, not from a launcher folder already used to sign in.
+## Build
 
-## Build game packages
-
-First install the pinned pnpm dependencies, run `configure.sh` and build the
-existing Sophon sidecar using YAAGL's build tooling. Supply the completed runtime
-from the driver repository, including its DXVK 3.1.1 shared-resource fallback
-repair. Stock DXVK 3.1.1 crashes when ZZZ probes shared textures without external
-sharing. The driver repository carries the patch/build recipe, so a separate
-DXVK fork is optional. Wine's binary code remains unchanged.
-
-The driver's runtime builder accepts the same Wine INF prerequisite fragment used
-by YAAGL's ordinary installer. After `configure.sh`, export it with:
+Configure dependencies, Neutralino and Sophon using YAAGL's build tooling. Use
+Python 3.12+ and Xcode command line tools. Build each frontend sequentially because
+Vite shares `dist/`. Fresh package folders are required; omit `--game-dir` for a
+release so recipients choose their own game location.
 
 ```sh
-node tools/nvk/export-wine-cert.cjs /absolute/new/yaagl-wine-cert.inf.fragment
-```
-
-Pass that output to the driver's `package.py --wine-cert-fragment ...`. This changes
-only the private package's Windows registry setup, not macOS trust settings.
-
-```sh
-python3 tools/nvk/package.py --game zzz --region global \
-  --runtime /absolute/nvk-wine-runtime --output /absolute/new/YAAGL-NVK-ZZZ \
-  --game-dir /absolute/games/ZZZ
-python3 tools/nvk/package.py --game gi --region global \
-  --runtime /absolute/nvk-wine-runtime --output /absolute/new/YAAGL-NVK-GI \
-  --game-dir /absolute/games/Genshin
-python3 tools/nvk/package.py --game hsr --region global \
-  --runtime /absolute/nvk-wine-runtime --output /absolute/new/YAAGL-NVK-HSR \
-  --game-dir /absolute/games/StarRail
-```
-
-Use `--region cn` for CN channels. Each command builds that game's frontend and
-creates a fresh app/data/runtime package. Run them sequentially because Vite's
-`dist/` is shared. Existing output directories are refused. Use Python 3.12+ and
-Xcode command line tools on Intel macOS. The local build disables YAAGL's upstream
-self-updater; updates remain manual until this fork has its own update channel.
-
-For redistributable packages, omit `--game-dir` so the recipient chooses their
-own directory. To include all three launchers with one shared Wine/runtime copy:
-
-```sh
+python3 tools/nvk/package.py --game zzz --region global --output /absolute/new/YAAGL-NVK-ZZZ
+python3 tools/nvk/package.py --game gi --region global --output /absolute/new/YAAGL-NVK-GI
+python3 tools/nvk/package.py --game hsr --region global --output /absolute/new/YAAGL-NVK-HSR
 python3 tools/nvk/combine.py \
-  --zzz /absolute/YAAGL-NVK-ZZZ --gi /absolute/YAAGL-NVK-GI \
-  --hsr /absolute/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.1.0
+  --zzz /absolute/new/YAAGL-NVK-ZZZ --gi /absolute/new/YAAGL-NVK-GI \
+  --hsr /absolute/new/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.1.0
 ```
 
-The combiner accepts fresh builds only, verifies their file hashes and matching
-runtime identities, and preserves a separate data directory/prefix for each game.
+Use `--region cn` for CN builds. The combiner verifies fresh launcher file hashes
+and excludes runtime, prefix and account state. Upstream self-updates remain
+disabled until this fork has its own update channel. Do not release used launcher
+folders or raw launcher console logs, which can include local RPC credentials.
 
-Tests: `pnpm exec vitest run src/wine/nvk*.spec.ts`, `pnpm exec tsc --noEmit`, plus
-ESLint/Prettier on changed files. These tests mock game processes; validate each
-real game before publishing a compatibility claim.
+## Validation
+
+Backend tests cover all three games, provider validation, private prefixes,
+native DLL overrides and the existing DXMT/Steam/Jadeite routes. TypeScript and
+all three frontend builds are checked. Native/Windows Vulkan GPU readbacks and
+D3D11 presentation/depth/blend/shared-texture fallback probes pass on RTX 2060
+SUPER / Tahoe. The optional `nvk-wine-setup.spec.ts` smoke test uses the pinned
+cached vendor archive, real extraction/codesign/hash checks and a private folder;
+it checks repeat setup, tamper detection and preservation of ordinary Wine.
+Set `YAAGL_TEST_WINE_ARCHIVE` and a fresh `YAAGL_TEST_WINE_WORK` to run it.
+
+These checks do not replace sustained gameplay, video/scene-transition and repeat
+launch testing. GI/HSR still need actual gameplay tests. A controlled performance
+comparison and commercial CrossOver qualification have not been done.

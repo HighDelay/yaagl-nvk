@@ -32,7 +32,8 @@ import {
   prepareD3DMetalWine,
   verifyD3DMetalArchive,
 } from "./d3dmetal";
-import { prepareNVKPrefix } from "./nvk";
+import { loadNVKProvider, prepareNVKPrefix } from "./nvk";
+import { installNVKWine } from "./nvk-wine";
 
 export async function createWineInstallProgram({
   aria2,
@@ -52,8 +53,10 @@ export async function createWineInstallProgram({
     acceptedAppleLicense = false
   ): CommonUpdateProgram {
     if (targetDistro.attributes.renderBackend === "dxvk-nvk") {
-      // A private local runtime has its own prefix. Never erase the existing
-      // Wine tree/prefix, download DXMT, or alter hosts during this setup.
+      // The driver owns NVK/DXVK. Download only the pinned Wine build into a
+      // separate tree; preserve ordinary Wine/prefixes and host settings.
+      await loadNVKProvider(targetDistro.attributes.nvkRuntimeRoot);
+      yield* installNVKWine(aria2);
       yield ["setStateText", "CONFIGURING_ENVIRONMENT"];
       const wine = await createWine({
         prefix: wineAbsPrefix,

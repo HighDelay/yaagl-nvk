@@ -16,8 +16,8 @@ vi.mock("@utils", () => ({
 vi.mock("./nvk", () => ({
   loadNVKRuntime: vi.fn(async () => ({
     root: "/Library/GPUBundles/nvmtl/wine",
-    wineRoot: "/Volumes/Games/runtime",
-    wine: "/Volumes/Games/runtime/wine/bin/wine",
+    wineRoot: "/Volumes/Games/launcher/wine-nvk",
+    wine: "/Volumes/Games/launcher/wine-nvk/bin/wine",
     id: "test-runtime",
   })),
   initializeNVKState: vi.fn(async () => "/Volumes/Games/launcher/nvk-state"),
@@ -47,7 +47,7 @@ describe("actual Wine factory dispatch", () => {
     await wine.exec("wineboot", ["-u"]);
     const bootstrap = vi.mocked(exec).mock.calls[0];
     expect(bootstrap[0]).toEqual([
-      "/Volumes/Games/runtime/wine/bin/wine",
+      "/Volumes/Games/launcher/wine-nvk/bin/wine",
       "wineboot",
       "-u",
     ]);
@@ -74,13 +74,13 @@ describe("actual Wine factory dispatch", () => {
     expect(recordNVKLaunch).toHaveBeenCalledOnce();
     await wine.killServer();
     expect(vi.mocked(exec2).mock.calls[1][0]).toEqual([
-      "/Volumes/Games/runtime/wine/bin/wineserver",
+      "/Volumes/Games/launcher/wine-nvk/bin/wineserver",
       "-k",
     ]);
     expect(wine.prefix).toBe("/Volumes/Games/launcher/wineprefix-nvk");
     expect(wine.attributes).toMatchObject({
       nvkRuntimeRoot: "/Library/GPUBundles/nvmtl/wine",
-      nvkWineRoot: "/Volumes/Games/runtime",
+      nvkWineRoot: "/Volumes/Games/launcher/wine-nvk",
     });
   });
 

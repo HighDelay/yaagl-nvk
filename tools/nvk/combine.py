@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Combine fresh ZZZ/GI/HSR builds with one shared Wine/runtime copy."""
+"""Combine fresh ZZZ/GI/HSR launcher builds without bundling any runtime."""
 import argparse
 import hashlib
 import json
@@ -17,7 +17,6 @@ if output.exists() or output.is_symlink():
     raise SystemExit("Use a new output directory")
 sources = {game: getattr(args, game.lower()).resolve(strict=True) for game in ("ZZZ", "GI", "HSR")}
 records = {}
-runtime_id = None
 for game, source in sources.items():
     if source == output.resolve() or source in output.resolve().parents:
         raise SystemExit("Output must be outside the source packages")
@@ -32,46 +31,35 @@ for game, source in sources.items():
         with (source / name).open("rb") as stream:
             if hashlib.file_digest(stream, "sha256").hexdigest() != expected:
                 raise SystemExit("Changed launcher artifact: " + name)
-    runtime = source / "runtime"
-    checked = json.loads(subprocess.check_output([str(runtime / "bin/nvk-runtime"), "check", str(runtime)], text=True))
-    runtime_id = runtime_id or checked["runtime_id"]
-    if checked["runtime_id"] != runtime_id:
-        raise SystemExit("All three packages must use the same runtime identity")
+    if any(record.get(name) for name in ("bundled_runtime", "bundled_wine", "bundled_dxvk")) or any((source / name).exists() for name in ("runtime", "wine-nvk", "dxvk-nvk")):
+        raise SystemExit("Release archives must contain launchers only; use the installed driver runtime")
     records[game] = record
 
 output.mkdir(parents=True)
-copied = subprocess.run(["/bin/cp", "-cR", str(sources["ZZZ"] / "runtime"), str(output / "runtime")], capture_output=True)
-if copied.returncode:
-    if (output / "runtime").exists():
-        shutil.rmtree(output / "runtime")
-    shutil.copytree(sources["ZZZ"] / "runtime", output / "runtime", symlinks=True)
 for game, source in sources.items():
-    shutil.copytree(source, output / game, symlinks=True,
-                    ignore=lambda folder, names: {"runtime"} if Path(folder) == source else set())
-    # Keep each wrapper, state directory and existing nvk-runtime link intact.
-    # Only its sibling runtime directory becomes a link to the common copy.
-    (output / game / "runtime").symlink_to("../runtime", target_is_directory=True)
+    shutil.copytree(source, output / game, symlinks=True)
 shutil.copyfile(repo / "LICENSE", output / "YAAGL-LICENSE.txt")
 shutil.copyfile(repo / "docs/NVK.md", output / "GUIDE.md")
 (output / "README.md").write_text("""# YAAGL NVK — ZZZ, GI and HSR
 
 Extract this entire folder. Open ZZZ, GI or HSR and use its Start YAAGL NVK.command.
-Keep the shared runtime folder beside all three game folders. Each launcher keeps
-its own prefix, settings, logs and caches. Choose your game installation directory
+Each launcher keeps its own prefix, settings, logs and caches. Choose your game installation directory
 on first use; these builds contain no game files or account state.
 
-Install HighDelay's matching NVIDIA driver first. The NVK backend prefers
-/Library/GPUBundles/nvmtl/wine, retaining the compatible bundled Wine executable.
-It falls back to the bundled renderer only when that driver directory is absent.
+Install HighDelay's matching NVIDIA driver first. The NVK backend requires
+/Library/GPUBundles/nvmtl/wine, including its matched DXVK pair. The launcher
+downloads and prepares the pinned Wine 11.0-1 build on first setup. This archive
+contains no Wine, NVK or DXVK runtime, and there is no bundled renderer fallback.
 Select Settings → Wine → NVIDIA NVK + DXVK (local, experimental).
 
 ZZZ gameplay is verified on RTX 2060 SUPER / Tahoe 26.7.1. GI/HSR configurations
 and builds exist, but their gameplay has not been qualified. These are global
 builds. See GUIDE.md for setup, runtime checks, rollback and validation limits.
-Dependency licenses and source/archive records are in runtime/LICENSES and its
-nvk-wine-runtime.json. This bundle does not include the games themselves.
+Driver dependency licenses and source records are in its Wine/NVK runtime.
+Wine's download identity and installed hashes are recorded in wine-nvk/nvk-wine.json
+inside each launcher's data folder after setup. No games are included.
 """)
 record = {"packaging_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
-          "runtime_id": runtime_id, "shared_runtime": "runtime", "games": records}
+          "installed_provider": "/Library/GPUBundles/nvmtl/wine", "bundled_runtime": False, "games": records}
 (output / "COMBINED-BUILD.json").write_text(json.dumps(record, indent=2) + "\n")
-print(json.dumps({"root": str(output), "runtime_id": runtime_id, "games": list(records)}, indent=2))
+print(json.dumps({"root": str(output), "bundled_runtime": False, "games": list(records)}, indent=2))

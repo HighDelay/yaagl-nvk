@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a game-specific YAAGL NVK app with private runtime and state folders."""
+"""Build a game-specific YAAGL NVK app without bundling Wine or graphics runtimes."""
 import argparse
 import hashlib
 import json
@@ -19,7 +19,6 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--game", choices=games, required=True)
 parser.add_argument("--region", choices=["global", "cn"], default="global")
 parser.add_argument("--output", type=Path, required=True)
-parser.add_argument("--runtime", type=Path, required=True)
 parser.add_argument("--game-dir", type=Path)
 args = parser.parse_args()
 game = games[args.game]
@@ -27,8 +26,6 @@ channel = game["channel"] + ("os" if args.region == "global" else "cn")
 root = args.output.resolve()
 if root.exists():
     raise SystemExit("Output exists; use a new folder to preserve its prefix and game data")
-runtime = args.runtime.resolve()
-subprocess.run([str(runtime / "bin/nvk-runtime"), "check", str(runtime)], check=True)
 for item in ["node_modules/.bin/vite", "bin/neutralino-mac_x64", "neutralino.js", "sidecar/sophon/SophonCLI"]:
     if not (repo / item).is_file():
         raise SystemExit("Missing " + item + "; run dependency/configuration/Sophon setup first")
@@ -37,25 +34,8 @@ subprocess.run([str(repo / "node_modules/.bin/vite"), "build", "--mode=developme
 root.mkdir(parents=True)
 data = root / "launcher-data"
 data.mkdir()
-# Clone on APFS; ordinary copying also works on other writable macOS volumes.
-copied = subprocess.run(["/bin/cp", "-cR", str(runtime), str(root / "runtime")], capture_output=True)
-if copied.returncode:
-    if (root / "runtime").exists():
-        shutil.rmtree(root / "runtime")
-    shutil.copytree(runtime, root / "runtime", symlinks=True)
-# Finder may add metadata after a runtime was built. Strip it only from this
-# fresh delivery copy; never mutate the source runtime or a running Wine tree.
-delivery_runtime = root / "runtime"
-removed = set()
-for path in delivery_runtime.rglob("*"):
-    if (path.name == ".DS_Store" or path.name.startswith("._")) and (path.is_file() or path.is_symlink()):
-        removed.add(path.relative_to(delivery_runtime).as_posix())
-        path.unlink()
-if removed:
-    sums = delivery_runtime / "SHA256SUMS"
-    sums.write_text("".join(row + "\n" for row in sums.read_text().splitlines()
-                            if row.partition("  ")[2] not in removed))
-(data / "nvk-runtime").symlink_to("../runtime")
+# The driver owns NVK/DXVK. Wine is downloaded and prepared on first setup.
+# Release archives contain launchers, not a second graphics or Wine runtime.
 shutil.copytree(repo / "dist", data / "dist")
 shutil.copyfile(repo / "neutralino.js", data / "dist/neutralino.js")
 shutil.copytree(repo / "sidecar", data / "sidecar", symlinks=True,
@@ -70,7 +50,7 @@ config["modes"]["window"]["icon"] = "/src/icons/" + game["icon"]
 game_dir = str(args.game_dir.resolve()) if args.game_dir else None
 storage = data / ".storage"
 storage.mkdir()
-initial = {"wine_state": "update", "wine_update_tag": "local-wine-11.0-dxvk-3.1.1-nvk",
+initial = {"wine_state": "update", "wine_update_tag": "driver-nvk-wine-11.0-1",
            "wine_update_url": "local://nvk-runtime", "config_block_net": "false"}
 if game_dir:
     initial["game_install_dir"] = game_dir
@@ -121,9 +101,8 @@ for path in sorted(delivered):
             files[str(path.relative_to(root))] = hashlib.file_digest(stream, "sha256").hexdigest()
 record = {"game": args.game, "region": args.region, "channel": channel, "root": str(root),
           "application": str(app), "data_root": str(data), "game_install_dir": game_dir,
-          "runtime_id": json.loads((runtime / "nvk-wine-runtime.json").read_text())["runtime_id"],
-          "default_provider": "/Library/GPUBundles/nvmtl/wine", "provider_fallback": "bundled runtime only if installed provider is absent",
-          "excluded_finder_metadata": sorted(removed),
+          "default_provider": "/Library/GPUBundles/nvmtl/wine", "requires_installed_provider": True,
+          "bundled_runtime": False, "bundled_wine": False, "bundled_dxvk": False,
           "yaagl_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
           "sophon_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo / "vendor/SophonClientv3", text=True).strip(),
           "source_diff": subprocess.check_output(["git", "diff", "--binary", "HEAD"], cwd=repo, text=True),

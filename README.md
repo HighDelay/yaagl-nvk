@@ -1,11 +1,11 @@
 # YAAGL NVK
 
-This fork adds an app-local **NVIDIA NVK + DXVK** backend for ZZZ, Genshin Impact
+This fork adds an **NVIDIA NVK + DXVK** backend for ZZZ, Genshin Impact
 and Honkai: Star Rail using [HighDelay's NVIDIA driver](https://github.com/HighDelay/nvidia-macos-driver).
 It keeps separate game prefixes and bypasses MoltenVK/NVMTL shader translation for
 D3D11 rendering. [Setup, build instructions and test status](docs/NVK.md).
-It prefers `/Library/GPUBundles/nvmtl/wine` from the driver while keeping its
-compatible bundled Wine; the bundled renderer is a fallback when that directory is absent.
+It uses NVK and the patched DXVK pair from `/Library/GPUBundles/nvmtl/wine`.
+The launcher archive contains no runtime; compatible Wine downloads on first setup.
 ZZZ world rendering, characters and the FPS overlay were confirmed on RTX 2060
 SUPER / Tahoe 26.7.1. GI/HSR and long-session stability still need testing. The
 existing YAAGL backends remain available.
