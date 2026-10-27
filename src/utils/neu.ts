@@ -1,15 +1,10 @@
-import { join } from "path-browserify";
+import { resolve as resolvePath } from "path-browserify";
 import { build, CommandSegments, rawString } from "./command-builder";
 
 export function resolve(path: string): string {
   if (!path.startsWith("/")) {
-    path = join(
-      import.meta.env.PROD
-        ? window.NL_PATH
-        : join(window.NL_CWD, window.NL_PATH),
-      path
-    );
-    // await Neutralino.os.showMessageBox("1", command, "OK");
+    // --path can be absolute in packaged and development launches alike.
+    path = resolvePath(window.NL_CWD, window.NL_PATH, path);
     if (!path.startsWith("/") || path == "/")
       throw new Error("Assertation failed " + path);
   }

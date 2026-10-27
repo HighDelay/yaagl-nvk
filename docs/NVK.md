@@ -19,7 +19,12 @@ matching driver **with the Wine/NVK runtime installed**.
 
 1. Install the [driver package](https://github.com/HighDelay/nvidia-macos-driver/releases) and reboot.
 2. Extract the YAAGL NVK archive. In the combined build, open `ZZZ/`, `GI/` or `HSR/`.
-3. Open **Start YAAGL NVK.command**. Select **Settings → Wine → NVIDIA NVK + DXVK (local, experimental)**.
+3. Open **Start YAAGL NVK.command** inside that game's folder. Keep the app and
+   `launcher-data` together. The Start command passes the original location when
+   macOS runs a downloaded app from a temporary, read-only location. If macOS
+   blocks the command, allow that downloaded command in **System Settings →
+   Privacy & Security → Open Anyway**, then open it again. Select **Settings →
+   Wine → NVIDIA NVK + DXVK (local, experimental)**.
 4. Setup verifies the installed driver runtime, downloads the pinned compatible
    Wine **11.0-1** archive, verifies its SHA-256 and prepares a private `wine-nvk`
    installation. It initializes its separate `wineprefix-nvk` and installs the
@@ -93,7 +98,7 @@ python3 tools/nvk/package.py --game gi --region global --output /absolute/new/YA
 python3 tools/nvk/package.py --game hsr --region global --output /absolute/new/YAAGL-NVK-HSR
 python3 tools/nvk/combine.py \
   --zzz /absolute/new/YAAGL-NVK-ZZZ --gi /absolute/new/YAAGL-NVK-GI \
-  --hsr /absolute/new/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.1.0
+  --hsr /absolute/new/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.1.1
 ```
 
 Use `--region cn` for CN builds. The combiner verifies fresh launcher file hashes
@@ -105,7 +110,9 @@ folders or raw launcher console logs, which can include local RPC credentials.
 
 Backend tests cover all three games, provider validation, private prefixes,
 native DLL overrides and the existing DXMT/Steam/Jadeite routes. TypeScript and
-all three frontend builds are checked. Native/Windows Vulkan GPU readbacks and
+all three frontend builds are checked. Path tests cover absolute/relative data
+locations, repeat resolution and file writes. Packaged-entry tests cover normal
+and relocated app paths, including folder names with spaces. Native/Windows Vulkan GPU readbacks and
 D3D11 presentation/depth/blend/shared-texture fallback probes pass on RTX 2060
 SUPER / Tahoe. The optional `nvk-wine-setup.spec.ts` smoke test uses the pinned
 cached vendor archive, real extraction/codesign/hash checks and a private folder;

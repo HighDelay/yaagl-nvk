@@ -10,6 +10,7 @@ import shutil
 import subprocess
 
 repo = Path(__file__).resolve().parents[2]
+version = "0.1.1"
 games = {
     "zzz": {"name": "ZZZ", "channel": "nap", "icon": "ZZZ_Bang.cr.png"},
     "gi": {"name": "Genshin Impact", "channel": "hk4e", "icon": "Paimon.cr.png"},
@@ -43,7 +44,7 @@ shutil.copytree(repo / "sidecar", data / "sidecar", symlinks=True,
 shutil.copytree(repo / "src/icons", data / "src/icons")
 config = json.loads((repo / "neutralino.config.json").read_text())
 config["applicationId"] = "com.highdelay.yaagl.nvk." + channel
-config["version"] = "0.1.0"
+config["version"] = version
 config["modes"]["window"]["title"] = "YAAGL NVK — " + game["name"]
 config["modes"]["window"]["icon"] = "/src/icons/" + game["icon"]
 (data / "neutralino.config.json").write_text(json.dumps(config, indent=2) + "\n")
@@ -64,32 +65,17 @@ mac.mkdir(parents=True)
 (app / "Contents/Resources").mkdir()
 shutil.copyfile(repo / "bin/neutralino-mac_x64", mac / "Yaagl")
 (mac / "Yaagl").chmod(0o755)
-wrapper = '''#!/bin/bash
-set -eu
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-app_root="$(cd "$script_dir/../.." && pwd)"
-task_root="$(cd "$script_dir/../../.." && pwd)"
-data_root="$task_root/launcher-data"
-mkdir -p "$data_root/logs" "$data_root/nvk-state/tmp"
-cd "$data_root"
-export TMPDIR="$data_root/nvk-state/tmp"
-export PATH_LAUNCH="$app_root"
-exec "$script_dir/Yaagl" --path="$data_root" >> "$data_root/logs/launcher-console.log" 2>&1
-'''
+wrapper = (repo / "tools/nvk/launch-app.sh").read_text().replace("@APP_NAME@", app_name)
 (mac / "parameterized").write_text(wrapper)
 (mac / "parameterized").chmod(0o755)
 info = {"CFBundleIdentifier": config["applicationId"], "CFBundleExecutable": "parameterized",
         "CFBundleName": "YAAGL NVK - " + game["name"], "CFBundlePackageType": "APPL",
-        "CFBundleVersion": "0.1.0", "CFBundleShortVersionString": "0.1.0",
+        "CFBundleVersion": version, "CFBundleShortVersionString": version,
         "NSHighResolutionCapable": True, "LSMinimumSystemVersion": "15.5"}
 (app / "Contents/Info.plist").write_bytes(plistlib.dumps(info))
 subprocess.run(["codesign", "--force", "--deep", "--sign", "-", "--timestamp=none", str(app)], check=True)
 start = root / "Start YAAGL NVK.command"
-start.write_text('''#!/bin/bash
-set -eu
-task_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-exec /usr/bin/open "$task_root/''' + app_name + '''"
-''')
+start.write_text((repo / "tools/nvk/start-launcher.sh").read_text().replace("@APP_NAME@", app_name))
 start.chmod(0o755)
 shutil.copyfile(repo / "LICENSE", root / "YAAGL-LICENSE.txt")
 shutil.copyfile(repo / "docs/NVK.md", root / "README.md")
@@ -99,7 +85,7 @@ for path in sorted(delivered):
     if path.is_file() and not path.is_symlink():
         with path.open("rb") as stream:
             files[str(path.relative_to(root))] = hashlib.file_digest(stream, "sha256").hexdigest()
-record = {"game": args.game, "region": args.region, "channel": channel, "root": str(root),
+record = {"version": version, "game": args.game, "region": args.region, "channel": channel, "root": str(root),
           "application": str(app), "data_root": str(data), "game_install_dir": game_dir,
           "default_provider": "/Library/GPUBundles/nvmtl/wine", "requires_installed_provider": True,
           "bundled_runtime": False, "bundled_wine": False, "bundled_dxvk": False,

@@ -52,11 +52,11 @@ Use it at your own risk. Or enjoying it with a new f2p account.
 
 ## Install
 
-- Go to [Release](https://github.com/3Shain/yet-another-anime-game-launcher/releases/latest) and download the latest version.
+- Download the launcher archive from [Releases](https://github.com/HighDelay/yaagl-nvk/releases/latest).
 
-- Uncompress and copy the resulting application to your `/Applications` folder. (Do not open the application from Downloads folder).
+- Extract the whole folder, open `ZZZ/`, `GI/` or `HSR/`, then open **Start YAAGL NVK.command**. Keep its app and `launcher-data` folder together; the app is not a standalone bundle.
 
-- Also make sure your game files aren't stored inside `/Applications`, use something inside your home folder instead, e.g `Games/GI`.
+- Follow the [setup instructions](docs/NVK.md). Each game's prefix and settings stay inside its launcher folder; game files can be stored separately.
 <!--
 ## Development (Outdated)
 

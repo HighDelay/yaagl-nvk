@@ -35,6 +35,8 @@ for game, source in sources.items():
         raise SystemExit("Release archives must contain launchers only; use the installed driver runtime")
     records[game] = record
 
+if len({record["version"] for record in records.values()}) != 1 or len({record["yaagl_revision"] for record in records.values()}) != 1:
+    raise SystemExit("Use game builds from the same version and source revision")
 output.mkdir(parents=True)
 for game, source in sources.items():
     shutil.copytree(source, output / game, symlinks=True)
@@ -59,7 +61,8 @@ Driver dependency licenses and source records are in its Wine/NVK runtime.
 Wine's download identity and installed hashes are recorded in wine-nvk/nvk-wine.json
 inside each launcher's data folder after setup. No games are included.
 """)
-record = {"packaging_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
+record = {"version": next(iter(records.values()))["version"],
+          "packaging_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
           "installed_provider": "/Library/GPUBundles/nvmtl/wine", "bundled_runtime": False, "games": records}
 (output / "COMBINED-BUILD.json").write_text(json.dumps(record, indent=2) + "\n")
 print(json.dumps({"root": str(output), "bundled_runtime": False, "games": list(records)}, indent=2))
