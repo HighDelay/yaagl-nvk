@@ -4,6 +4,7 @@ import type { Wine } from "./wine";
 
 export interface NVKRuntime {
   root: string;
+  wineRoot: string;
   helper: string;
   wine: string;
   id: string;
@@ -14,9 +15,9 @@ export interface NVKRuntime {
   };
 }
 
-export async function loadNVKRuntime(
-  root = resolve("./nvk-runtime")
-): Promise<NVKRuntime> {
+export const INSTALLED_NVK_ROOT = "/Library/GPUBundles/nvmtl/wine";
+
+async function validateRuntime(root: string) {
   const manifestPath = join(root, "nvk-wine-runtime.json");
   if (!(await fileOrDirExists(manifestPath))) {
     throw new Error(
@@ -39,12 +40,43 @@ export async function loadNVKRuntime(
   if (checked.result !== "PASS" || checked.runtime_id !== manifest.runtime_id) {
     throw new Error("The NVIDIA NVK runtime failed validation.");
   }
+  return { root, helper, manifest, checked };
+}
+
+export async function loadNVKRuntime(
+  bundleRoot = resolve("./nvk-runtime"),
+  selectedRoot?: string
+): Promise<NVKRuntime> {
+  // Wine stays pinned to the app's validated bundle. The driver's compact
+  // provider contains Vulkan/DXVK, not another Wine installation.
+  bundleRoot = resolve(bundleRoot);
+  const bundle = await validateRuntime(bundleRoot);
+  const wine = bundle.checked.wine_executable;
+  if (typeof wine !== "string" || !wine.startsWith("/")) {
+    throw new Error(
+      "The YAAGL NVK bundle must include its compatible Wine executable."
+    );
+  }
+  const root = selectedRoot
+    ? resolve(selectedRoot)
+    : (await fileOrDirExists(INSTALLED_NVK_ROOT))
+    ? INSTALLED_NVK_ROOT
+    : bundleRoot;
+  // If an installed provider exists but is invalid, report it. Silently using
+  // the older bundled renderer would hide a broken or mismatched installation.
+  const provider = root === bundleRoot ? bundle : await validateRuntime(root);
+  if (root !== bundleRoot && provider.manifest.kind !== "provider") {
+    throw new Error(
+      "The installed NVIDIA NVK runtime must be a compact driver provider."
+    );
+  }
   return {
     root,
-    helper,
-    wine: checked.wine_executable,
-    id: checked.runtime_id,
-    manifest,
+    wineRoot: bundleRoot,
+    helper: provider.helper,
+    wine,
+    id: provider.checked.runtime_id,
+    manifest: provider.manifest,
   };
 }
 
@@ -66,7 +98,12 @@ export async function initializeNVKState() {
 export async function prepareNVKPrefix(
   wine: Pick<Wine, "prefix" | "attributes">
 ) {
-  const runtime = await loadNVKRuntime(wine.attributes.nvkRuntimeRoot);
+  const runtime = wine.attributes.nvkWineRoot
+    ? await loadNVKRuntime(
+        wine.attributes.nvkWineRoot,
+        wine.attributes.nvkRuntimeRoot
+      )
+    : await loadNVKRuntime(wine.attributes.nvkRuntimeRoot);
   await exec([runtime.helper, "install", runtime.root, wine.prefix]);
   return runtime;
 }
@@ -120,6 +157,7 @@ export async function recordNVKLaunch(runtime: NVKRuntime, directory: string) {
       {
         runtime_id: runtime.id,
         root: runtime.root,
+        wine_root: runtime.wineRoot,
         wine: runtime.wine,
         files: runtime.manifest.files,
         backend: "dxvk-nvk",

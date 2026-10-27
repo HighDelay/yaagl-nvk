@@ -38,6 +38,18 @@ is on Tahoe 26.7.1 / RTX 2060 SUPER.
 5. Check the DXVK HUD and logs. The actual Vulkan driver/device must identify
    NVK/NVIDIA and loaded-image paths must point to this runtime's two NVK libraries.
 
+The backend **prefers `/Library/GPUBundles/nvmtl/wine`** from the driver for its
+Vulkan provider and matched DXVK pair. It still uses the compatible Wine executable
+in the app's bundle via `launcher-data/nvk-runtime`; the driver provider does not
+contain Wine. If the driver directory is absent, the complete bundled runtime is
+used instead. An installed provider with missing files, a bad checksum or invalid
+signature stops launch with an error rather than silently selecting an older renderer.
+
+The selected provider and Wine bundle paths are recorded separately in `runtime.json`.
+Moving from the bundled provider to the driver provider preserves original-file
+backups when both have the exact same DXVK pair. For a different pair, restore the
+old setup first, then let the launcher install the new pair after the game exits.
+
 The NVK backend defaults to `dxvk.enableDescriptorBuffer = False`: the descriptor
 buffer path rendered ZZZ's environment but lost characters and HUD text; switching
 to descriptor sets restored both in the controlled game test. Logs should show
@@ -89,6 +101,8 @@ Run that from the extracted package root after its Wine processes exit. Setup
 journals and checks both originals before restoring either. Unexpected modified
 DLLs or backups cause a refusal; leave them available for inspection. Runtime
 integrity can be checked with `./runtime/bin/nvk-runtime check "$(pwd)/runtime"`.
+For the installed provider, use
+`/Library/GPUBundles/nvmtl/wine/bin/nvk-runtime check /Library/GPUBundles/nvmtl/wine`.
 
 Do not publish account state, prefixes or raw unfiltered launcher console logs.
 The latter can include local RPC credentials. Release archives should be built

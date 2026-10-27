@@ -201,7 +201,7 @@ reg add "HKEY_LOCAL_MACHINE\\SOFTWARE\\NVIDIA Corporation\\Global\\NGXCore" /v F
     setNVExtension,
     attributes: {
       ...options.distro.attributes,
-      ...(nvk ? { nvkRuntimeRoot: nvk.root } : {}),
+      ...(nvk ? { nvkRuntimeRoot: nvk.root, nvkWineRoot: nvk.wineRoot } : {}),
     },
   };
 }

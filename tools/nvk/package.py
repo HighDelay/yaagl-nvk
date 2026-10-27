@@ -55,11 +55,13 @@ config["version"] = "0.1.0"
 config["modes"]["window"]["title"] = "YAAGL NVK — " + game["name"]
 config["modes"]["window"]["icon"] = "/src/icons/" + game["icon"]
 (data / "neutralino.config.json").write_text(json.dumps(config, indent=2) + "\n")
-game_dir = str(args.game_dir.resolve()) if args.game_dir else str(root.parent / "Games" / game["name"])
+game_dir = str(args.game_dir.resolve()) if args.game_dir else None
 storage = data / ".storage"
 storage.mkdir()
 initial = {"wine_state": "update", "wine_update_tag": "local-wine-11.0-dxvk-3.1.1-nvk",
-           "wine_update_url": "local://nvk-runtime", "config_block_net": "false", "game_install_dir": game_dir}
+           "wine_update_url": "local://nvk-runtime", "config_block_net": "false"}
+if game_dir:
+    initial["game_install_dir"] = game_dir
 initial.update({"config_steam_patch": "true", "config_timeout_fix": "true"})
 for key, value in initial.items():
     (storage / (key + ".neustorage")).write_text(value)
@@ -108,6 +110,7 @@ for path in sorted(delivered):
 record = {"game": args.game, "region": args.region, "channel": channel, "root": str(root),
           "application": str(app), "data_root": str(data), "game_install_dir": game_dir,
           "runtime_id": json.loads((runtime / "nvk-wine-runtime.json").read_text())["runtime_id"],
+          "default_provider": "/Library/GPUBundles/nvmtl/wine", "provider_fallback": "bundled runtime only if installed provider is absent",
           "yaagl_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
           "sophon_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo / "vendor/SophonClientv3", text=True).strip(),
           "source_diff": subprocess.check_output(["git", "diff", "--binary", "HEAD"], cwd=repo, text=True),

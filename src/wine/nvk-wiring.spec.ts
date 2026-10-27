@@ -15,7 +15,8 @@ vi.mock("@utils", () => ({
 }));
 vi.mock("./nvk", () => ({
   loadNVKRuntime: vi.fn(async () => ({
-    root: "/Volumes/Games/runtime",
+    root: "/Library/GPUBundles/nvmtl/wine",
+    wineRoot: "/Volumes/Games/runtime",
     wine: "/Volumes/Games/runtime/wine/bin/wine",
     id: "test-runtime",
   })),
@@ -52,7 +53,7 @@ describe("actual Wine factory dispatch", () => {
     ]);
     expect(bootstrap[1]).toMatchObject({
       WINEPREFIX: "/Volumes/Games/launcher/wineprefix-nvk",
-      DYLD_LIBRARY_PATH: "/Volumes/Games/runtime/lib",
+      DYLD_LIBRARY_PATH: "/Library/GPUBundles/nvmtl/wine/lib",
       WINEDLLOVERRIDES: "",
     });
     await wine.exec2(
@@ -77,6 +78,10 @@ describe("actual Wine factory dispatch", () => {
       "-k",
     ]);
     expect(wine.prefix).toBe("/Volumes/Games/launcher/wineprefix-nvk");
+    expect(wine.attributes).toMatchObject({
+      nvkRuntimeRoot: "/Library/GPUBundles/nvmtl/wine",
+      nvkWineRoot: "/Volumes/Games/runtime",
+    });
   });
 
   it("keeps the original loader, prefix and caller overrides for DXMT", async () => {

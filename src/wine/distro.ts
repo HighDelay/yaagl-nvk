@@ -9,6 +9,7 @@ export interface WineDistributionAttributes {
   supportsD3d12: boolean;
   winePath: string; // Path to the wine directory inside the archive
   nvkRuntimeRoot: string;
+  nvkWineRoot: string;
 }
 
 export interface WineDistribution {
