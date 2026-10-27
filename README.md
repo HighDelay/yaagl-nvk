@@ -1,4 +1,14 @@
-# Yet another anime game launcher (Yaagl)
+# YAAGL NVK
+
+This fork adds an app-local **NVIDIA NVK + DXVK** backend for ZZZ, Genshin Impact
+and Honkai: Star Rail using [HighDelay's NVIDIA driver](https://github.com/HighDelay/nvidia-macos-driver).
+It keeps separate game prefixes and bypasses MoltenVK/NVMTL shader translation for
+D3D11 rendering. [Setup, build instructions and test status](docs/NVK.md).
+ZZZ world rendering, characters and the FPS overlay were confirmed on RTX 2060
+SUPER / Tahoe 26.7.1. GI/HSR and long-session stability still need testing. The
+existing YAAGL backends remain available.
+
+Based on [Yet another anime game launcher](https://github.com/yaagl/yet-another-anime-game-launcher).
 
 ## Current Supported Game Version:
 ### GI: 5.3.0+ OS/CN **

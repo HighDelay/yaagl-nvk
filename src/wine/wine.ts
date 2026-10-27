@@ -11,15 +11,31 @@ import {
   stats,
   resolve,
   writeFile,
+  env as hostEnvironment,
 } from "@utils";
 import { dirname, join } from "path-browserify";
 import { WineDistribution } from "./distro";
+import { initializeNVKState, loadNVKRuntime, recordNVKLaunch } from "./nvk";
+import { nvkEnvironment, nvkPrefix } from "./nvk-contract";
 
 export async function createWine(options: {
   prefix: string;
   distro: WineDistribution;
 }) {
-  const loaderBin = await getCorrectWineBinary();
+  const nvk =
+    options.distro.attributes.renderBackend === "dxvk-nvk"
+      ? await loadNVKRuntime(options.distro.attributes.nvkRuntimeRoot)
+      : undefined;
+  const loaderBin = nvk ? nvk.wine : await getCorrectWineBinary();
+  const selectedPrefix = nvk ? nvkPrefix(options.prefix) : options.prefix;
+  const nvkState = nvk ? await initializeNVKState() : "";
+  const nvkHostOptions: Record<string, string> = {};
+  if (nvk) {
+    for (const name of ["DXVK_CONFIG", "DXVK_HUD"]) {
+      const value = await hostEnvironment(name).catch(() => undefined);
+      if (value) nvkHostOptions[name] = value;
+    }
+  }
 
   async function cmd(command: string, args: string[]) {
     return await exec("cmd", [command, ...args]);
@@ -35,10 +51,10 @@ export async function createWine(options: {
       program == "copy"
         ? [loaderBin, "cmd", "/c", program, ...args]
         : [loaderBin, program, ...args],
-      {
-        ...getEnvironmentVariables(),
-        ...(env ?? {}),
-      },
+      getEnvironmentVariables(
+        env,
+        program === "wineboot" || program === "winecfg"
+      ),
       false,
       log_file
     );
@@ -50,14 +66,16 @@ export async function createWine(options: {
     env?: { [key: string]: string },
     log_file: string | undefined = undefined
   ) {
+    if (nvk && log_file) {
+      const directory = log_file + ".nvk";
+      await recordNVKLaunch(nvk, directory);
+      env = { ...env, DXVK_LOG_PATH: directory };
+    }
     return await unixExec2(
       program == "copy"
         ? [loaderBin, "cmd", "/c", program, ...args]
         : [loaderBin, program, ...args],
-      {
-        ...getEnvironmentVariables(),
-        ...(env ?? {}),
-      },
+      getEnvironmentVariables(env),
       false,
       log_file
     );
@@ -79,11 +97,22 @@ export async function createWine(options: {
     return "Z:" + `${absPath}`.replaceAll("/", "\\");
   }
 
-  function getEnvironmentVariables() {
-    return {
+  function getEnvironmentVariables(
+    extra: Record<string, string> = {},
+    bootstrap = false
+  ) {
+    const base = {
+      ...nvkHostOptions,
       WINEDEBUG: "fixme-all,err-unwind,+timestamp",
-      WINEPREFIX: options.prefix,
+      WINEPREFIX: selectedPrefix,
+      ...extra,
     };
+    if (!nvk) return base;
+    const selected = nvkEnvironment(nvk.root, nvkState, base);
+    // Prefix initialization creates system32 before the native pair can be
+    // installed. Configuration helpers must not require that pair prematurely.
+    if (bootstrap) selected.WINEDLLOVERRIDES = extra.WINEDLLOVERRIDES || "";
+    return selected;
   }
 
   async function openCmdWindow({ gameDir }: { gameDir: string }) {
@@ -166,12 +195,13 @@ reg add "HKEY_LOCAL_MACHINE\\SOFTWARE\\NVIDIA Corporation\\Global\\NGXCore" /v F
     killServer,
     cmd,
     toWinePath,
-    prefix: options.prefix,
+    prefix: selectedPrefix,
     openCmdWindow,
     setProps,
     setNVExtension,
     attributes: {
       ...options.distro.attributes,
+      ...(nvk ? { nvkRuntimeRoot: nvk.root } : {}),
     },
   };
 }

@@ -20,6 +20,7 @@ import { CN_BLOCK_URL, OS_BLOCK_URL } from "../../secret";
 import hk4eHDRGlobalReg from "../../../constants/hk4e_hdr_os.reg?raw";
 import hk4eHDRCnReg from "../../../constants/hk4e_hdr_cn.reg?raw";
 import { gt } from "semver";
+import { graphicsArguments } from "../../../wine/nvk-contract";
 
 const HDR_REGISTRY_FILES = {
   hk4e_global: hk4eHDRGlobalReg,
@@ -114,6 +115,11 @@ export async function* launchGameProgram({
   }
   await wine.waitUntilServerOff();
 
+  const graphicsArgs = graphicsArguments(
+    wine.attributes.renderBackend,
+    false,
+    false
+  );
   const cmd = `@echo off
 cd "%~dp0"
 copy "${wine.toWinePath(
@@ -122,7 +128,9 @@ copy "${wine.toWinePath(
 cd /d "${wine.toWinePath(gameDir)}"
 "${wine.toWinePath(
     join(gameDir, gameExecutable)
-  )}" -platform_type CLOUD_THIRD_PARTY_PC -is_cloud 1`;
+  )}" -platform_type CLOUD_THIRD_PARTY_PC -is_cloud 1 ${graphicsArgs.join(
+    " "
+  )}`;
   await writeFile(resolve("config.bat"), cmd);
   yield* patchProgram(gameDir, wine, server, config);
   await mkdirp(resolve("./logs"));
@@ -168,7 +176,7 @@ cd /d "${wine.toWinePath(gameDir)}"
     await wine.exec2(
       config.steamPatch ? "C:\\windows\\system32\\steam.exe" : "cmd",
       config.steamPatch
-        ? [wine.toWinePath(join(gameDir, gameExecutable))]
+        ? [wine.toWinePath(join(gameDir, gameExecutable)), ...graphicsArgs]
         : ["/c", `${wine.toWinePath(resolve("./config.bat"))} `],
       {
         MTL_HUD_ENABLED: config.metalHud ? "1" : "0",

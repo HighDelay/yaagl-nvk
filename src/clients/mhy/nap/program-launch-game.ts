@@ -19,6 +19,7 @@ import { Config } from "@config";
 import { putLocal, patchProgram, patchRevertProgram } from "../patch";
 import { NAP_CN_BLOCK_URL, NAP_OS_BLOCK_URL } from "../../secret";
 import { gt } from "semver";
+import { graphicsArguments } from "../../../wine/nvk-contract";
 
 export async function* launchGameProgram({
   gameDir,
@@ -45,10 +46,12 @@ export async function* launchGameProgram({
     args.push("-screen-height", config.resolutionHeight);
     args.push("-screen-fullscreen", "0");
   }
-  const useD3D12 = config.useD3D12 && wine.attributes.supportsD3d12 === true;
-  if (useD3D12) {
-    args.push("-use-d3d12");
-  }
+  const graphicsArgs = graphicsArguments(
+    wine.attributes.renderBackend,
+    wine.attributes.supportsD3d12,
+    config.useD3D12
+  );
+  args.push(...graphicsArgs);
   const cmd = `@echo off
 cd "%~dp0"
 copy "${wine.toWinePath(
@@ -104,10 +107,7 @@ cd /d "${wine.toWinePath(gameDir)}"
     await wine.exec2(
       config.steamPatch ? "C:\\windows\\system32\\steam.exe" : "cmd",
       config.steamPatch
-        ? [
-            wine.toWinePath(join(gameDir, gameExecutable)),
-            ...(useD3D12 ? ["-use-d3d12"] : []),
-          ]
+        ? [wine.toWinePath(join(gameDir, gameExecutable)), ...graphicsArgs]
         : ["/c", `${wine.toWinePath(resolve("./config.bat"))} `],
       {
         MTL_HUD_ENABLED: config.metalHud ? "1" : "0",

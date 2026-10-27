@@ -2,11 +2,13 @@ import { getKey } from "@utils";
 import { DEFAULT_WINE_DISTRO_TAG } from "../clients";
 import { Github } from "../github";
 import { D3DMETAL_RUNTIME_ID, D3DMETAL_RUNTIME_URL } from "./d3dmetal";
+import { NVK_RUNTIME_ID, supportsNVKChannel } from "./nvk-contract";
 
 export interface WineDistributionAttributes {
-  renderBackend: "dxmt" | "d3dmetal";
+  renderBackend: "dxmt" | "d3dmetal" | "dxvk-nvk";
   supportsD3d12: boolean;
   winePath: string; // Path to the wine directory inside the archive
+  nvkRuntimeRoot: string;
 }
 
 export interface WineDistribution {
@@ -98,6 +100,17 @@ const YAAGL_BUILTIN_WINE: WineDistribution[] = [
 ];
 
 export async function getWineDistributions(): Promise<WineDistribution[]> {
+  if (supportsNVKChannel(String(import.meta.env["YAAGL_CHANNEL_CLIENT"]))) {
+    return [
+      {
+        id: NVK_RUNTIME_ID,
+        displayName: "NVIDIA NVK + DXVK (local, experimental)",
+        remoteUrl: "local://nvk-runtime",
+        attributes: { renderBackend: "dxvk-nvk", supportsD3d12: false },
+      },
+      ...YAAGL_BUILTIN_WINE,
+    ];
+  }
   return YAAGL_BUILTIN_WINE;
 }
 

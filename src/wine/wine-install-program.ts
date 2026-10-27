@@ -32,6 +32,7 @@ import {
   prepareD3DMetalWine,
   verifyD3DMetalArchive,
 } from "./d3dmetal";
+import { prepareNVKPrefix } from "./nvk";
 
 export async function createWineInstallProgram({
   aria2,
@@ -50,6 +51,29 @@ export async function createWineInstallProgram({
     targetDistro: WineDistribution,
     acceptedAppleLicense = false
   ): CommonUpdateProgram {
+    if (targetDistro.attributes.renderBackend === "dxvk-nvk") {
+      // A private local runtime has its own prefix. Never erase the existing
+      // Wine tree/prefix, download DXMT, or alter hosts during this setup.
+      yield ["setStateText", "CONFIGURING_ENVIRONMENT"];
+      const wine = await createWine({
+        prefix: wineAbsPrefix,
+        distro: targetDistro,
+      });
+      await wine.exec("wineboot", ["-u"], {}, resolve("wineboot-nvk.log"));
+      await wine.exec(
+        "winecfg",
+        ["-v", "win10"],
+        {},
+        resolve("winecfg-nvk.log")
+      );
+      await prepareNVKPrefix(wine);
+      await setKey("wine_tag", targetDistro.id);
+      await setKey("wine_state", "ready");
+      await setKey("wine_update_url", null);
+      await setKey("wine_update_tag", null);
+      yield ["setStateText", "INSTALL_DONE"];
+      return;
+    }
     const isOurRuntime = targetDistro.id === D3DMETAL_RUNTIME_ID;
     if (isOurRuntime && !acceptedAppleLicense) {
       throw new Error(

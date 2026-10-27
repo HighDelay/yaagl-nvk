@@ -21,6 +21,7 @@ import createBlockNet from "./config/block-net";
 import createResolution from "./config/resolution";
 import createTimeoutFix from "./config/timeout-fix";
 import { createEnableHDRConfig } from "./config/enable-hdr";
+import { prepareNVKGame } from "../../../wine/nvk";
 
 export async function createHK4EChannelClient({
   server,
@@ -40,6 +41,10 @@ export async function createHK4EChannelClient({
     uiContent: await getGameArtwork(locale, server, icon),
     async *launch(config: Config) {
       if (!(await game.canLaunch())) return;
+      await prepareNVKGame(wine, game.installDir(), {
+        reshade: config.reshade,
+        hdr: config.hk4eEnableHDR,
+      });
       if (config.reshade) {
         yield* checkAndDownloadReshade(aria2, wine, game.installDir());
       }

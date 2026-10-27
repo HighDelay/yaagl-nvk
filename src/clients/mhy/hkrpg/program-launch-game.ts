@@ -19,6 +19,7 @@ import { Config } from "@config";
 import { putLocal, patchProgram, patchRevertProgram } from "../patch";
 import { HKRPG_CN_BLOCK_URL, HKRPG_OS_BLOCK_URL } from "../../secret";
 import { gt } from "semver";
+import { graphicsArguments } from "../../../wine/nvk-contract";
 
 export async function* launchGameProgram({
   gameDir,
@@ -40,12 +41,17 @@ export async function* launchGameProgram({
   await wine.setProps(config);
   if (wine.attributes.renderBackend == "dxmt") await wine.setNVExtension();
 
+  const graphicsArgs = graphicsArguments(
+    wine.attributes.renderBackend,
+    false,
+    false
+  );
   const cmd = `@echo off
 cd "%~dp0"
 cd /d "${wine.toWinePath(gameDir)}"
 "${wine.toWinePath(resolve("./jadeite/jadeite.exe"))}" "${wine.toWinePath(
     join(gameDir, gameExecutable)
-  )}"`;
+  )}" ${graphicsArgs.join(" ")}`;
   await writeFile(resolve("config.bat"), cmd);
   yield* patchProgram(gameDir, wine, server, config);
   await mkdirp(resolve("./logs"));
@@ -90,11 +96,18 @@ cd /d "${wine.toWinePath(gameDir)}"
 
     const preferredMaxFrameRate = await resolvePreferredMaxFrameRate(config);
     await wine.exec2(
-      "cmd",
-      ["/c", `${wine.toWinePath(resolve("./config.bat"))}`],
+      config.steamPatch ? "C:\\windows\\system32\\steam.exe" : "cmd",
+      config.steamPatch
+        ? [
+            wine.toWinePath(resolve("./jadeite/jadeite.exe")),
+            wine.toWinePath(join(gameDir, gameExecutable)),
+            ...graphicsArgs,
+          ]
+        : ["/c", `${wine.toWinePath(resolve("./config.bat"))}`],
       {
         MTL_HUD_ENABLED: config.metalHud ? "1" : "0",
         WINEDLLOVERRIDES: "",
+        WINE_ENABLE_TIMEOUT_FIX: config.timeoutFix ? "1" : "0",
         ...(wine.attributes.renderBackend == "dxmt"
           ? {
               WINEMSYNC: "1",

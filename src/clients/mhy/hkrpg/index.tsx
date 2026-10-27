@@ -17,6 +17,9 @@ import {
 import icon from "../../../icons/March7th.cr.png";
 import createPatchOff from "./config/patch-off";
 import createBlockNet from "./config/block-net";
+import { prepareNVKGame } from "../../../wine/nvk";
+import createSteamPatch from "../nap/config/steam-patch";
+import createTimeoutFix from "../nap/config/timeout-fix";
 
 export async function createHKRPGChannelClient({
   server,
@@ -36,6 +39,9 @@ export async function createHKRPGChannelClient({
     uiContent: await getGameArtwork(locale, server, icon),
     async *launch(config: Config) {
       if (!(await game.canLaunch())) return;
+      await prepareNVKGame(wine, game.installDir(), {
+        reshade: config.reshade,
+      });
       if (config.reshade) {
         yield* checkAndDownloadReshade(aria2, wine, game.installDir());
       }
@@ -66,9 +72,18 @@ export async function createHKRPGChannelClient({
     async createConfig(locale: Locale, config: Partial<Config>) {
       const [PO] = await createPatchOff({ locale, config });
       const [BN] = await createBlockNet({ locale, config });
+      const [SP] = await createSteamPatch({ locale, config });
+      const [TF] = await createTimeoutFix({ locale, config });
 
       return function () {
-        return ["Game Version: ", game.gameVersion(), <PO />, <BN />];
+        return [
+          "Game Version: ",
+          game.gameVersion(),
+          <PO />,
+          <BN />,
+          <SP />,
+          <TF />,
+        ];
       };
     },
   };

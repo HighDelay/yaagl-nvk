@@ -19,6 +19,7 @@ import createResolution from "./config/resolution";
 import createBlockNet from "./config/block-net";
 import createSteamPatch from "./config/steam-patch";
 import createTimeoutFix from "./config/timeout-fix";
+import { prepareNVKGame } from "../../../wine/nvk";
 
 export async function createNAPChannelClient({
   server,
@@ -35,10 +36,13 @@ export async function createNAPChannelClient({
   return {
     ...game,
     sophon: game,
-    supportsD3d12: true,
+    supportsD3d12: wine.attributes.renderBackend !== "dxvk-nvk",
     uiContent: await getGameArtwork(locale, server, icon),
     async *launch(config: Config) {
       if (!(await game.canLaunch())) return;
+      await prepareNVKGame(wine, game.installDir(), {
+        reshade: config.reshade,
+      });
       if (config.reshade) {
         yield* checkAndDownloadReshade(aria2, wine, game.installDir());
       }
