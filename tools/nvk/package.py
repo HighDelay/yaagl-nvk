@@ -43,6 +43,18 @@ if copied.returncode:
     if (root / "runtime").exists():
         shutil.rmtree(root / "runtime")
     shutil.copytree(runtime, root / "runtime", symlinks=True)
+# Finder may add metadata after a runtime was built. Strip it only from this
+# fresh delivery copy; never mutate the source runtime or a running Wine tree.
+delivery_runtime = root / "runtime"
+removed = set()
+for path in delivery_runtime.rglob("*"):
+    if (path.name == ".DS_Store" or path.name.startswith("._")) and (path.is_file() or path.is_symlink()):
+        removed.add(path.relative_to(delivery_runtime).as_posix())
+        path.unlink()
+if removed:
+    sums = delivery_runtime / "SHA256SUMS"
+    sums.write_text("".join(row + "\n" for row in sums.read_text().splitlines()
+                            if row.partition("  ")[2] not in removed))
 (data / "nvk-runtime").symlink_to("../runtime")
 shutil.copytree(repo / "dist", data / "dist")
 shutil.copyfile(repo / "neutralino.js", data / "dist/neutralino.js")
@@ -111,6 +123,7 @@ record = {"game": args.game, "region": args.region, "channel": channel, "root": 
           "application": str(app), "data_root": str(data), "game_install_dir": game_dir,
           "runtime_id": json.loads((runtime / "nvk-wine-runtime.json").read_text())["runtime_id"],
           "default_provider": "/Library/GPUBundles/nvmtl/wine", "provider_fallback": "bundled runtime only if installed provider is absent",
+          "excluded_finder_metadata": sorted(removed),
           "yaagl_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
           "sophon_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo / "vendor/SophonClientv3", text=True).strip(),
           "source_diff": subprocess.check_output(["git", "diff", "--binary", "HEAD"], cwd=repo, text=True),
