@@ -26,7 +26,9 @@ matching Wine/NVK runtime. The renderer targets Sequoia 15.5 or newer; testing s
 is on Tahoe 26.7.1 / RTX 2060 SUPER.
 
 1. Extract the complete game-specific launcher package. Keep its app,
-   `launcher-data/` and `runtime/` together.
+   `launcher-data/` and `runtime/` together. For the combined release, keep the
+   top-level shared `runtime/` beside `ZZZ/`, `GI/` and `HSR/`, then open the
+   desired game's folder.
 2. Open **Start YAAGL NVK.command** or its game-specific app.
 3. Select **Settings → Wine → NVIDIA NVK + DXVK (local, experimental)**. Let the
    launcher initialize its own `wineprefix-nvk` prefix.
@@ -144,6 +146,18 @@ creates a fresh app/data/runtime package. Run them sequentially because Vite's
 `dist/` is shared. Existing output directories are refused. Use Python 3.12+ and
 Xcode command line tools on Intel macOS. The local build disables YAAGL's upstream
 self-updater; updates remain manual until this fork has its own update channel.
+
+For redistributable packages, omit `--game-dir` so the recipient chooses their
+own directory. To include all three launchers with one shared Wine/runtime copy:
+
+```sh
+python3 tools/nvk/combine.py \
+  --zzz /absolute/YAAGL-NVK-ZZZ --gi /absolute/YAAGL-NVK-GI \
+  --hsr /absolute/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.1.0
+```
+
+The combiner accepts fresh builds only, verifies their file hashes and matching
+runtime identities, and preserves a separate data directory/prefix for each game.
 
 Tests: `pnpm exec vitest run src/wine/nvk*.spec.ts`, `pnpm exec tsc --noEmit`, plus
 ESLint/Prettier on changed files. These tests mock game processes; validate each
