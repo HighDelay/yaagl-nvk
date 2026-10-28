@@ -64,6 +64,7 @@ export const zh_CN = {
   SETTING_ASYNC_DXVK: "DXVK Shader异步编译",
   SETTING_ENABLED: "启用",
   SETTING_DXVK_HUD: "DXVK HUD",
+  SETTING_DXVK_HUD_DESC: "下次启动游戏时生效。",
   SETTING_DXVK_HUD_NONE: "不显示",
   SETTING_DXVK_HUD_FPS: "显示FPS",
   SETTING_DXVK_HUD_ALL: "显示所有信息",

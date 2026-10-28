@@ -69,8 +69,13 @@ show about 60 FPS; they are not a controlled performance comparison.
 `dxvk.enableDescriptorBuffer = False` remains the default: descriptor buffers lost
 ZZZ characters and HUD text; descriptor sets restored both. DXVK logs should say
 `Binding model: Legacy`. FPS/device/frame-time HUD defaults to 1.25× scale.
-Host `DXVK_HUD` and `DXVK_CONFIG` values are forwarded for diagnostics; `DXVK_HUD=0`
-hides the overlay. Other Wine backends keep their existing settings.
+**Unreleased source option:** Settings → General → **DXVK HUD** toggles the overlay
+for the NVK backend, in normal settings and custom first setup. It defaults on,
+is saved per launcher and
+applies on the next game launch. Turning it off forces `DXVK_HUD=0`, including for
+child processes. When enabled, host `DXVK_HUD` values can customize its style.
+Host `DXVK_CONFIG` values remain available for diagnostics. Other Wine backends
+keep their existing Metal HUD control.
 
 Each launcher has separate data, prefix, caches and logs. Every game run records
 `runtime.json` and DXVK logs beside its normal log in a `.nvk` folder. The record

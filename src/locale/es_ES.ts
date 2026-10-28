@@ -70,6 +70,7 @@ export const es_ES: typeof zh_CN = {
   SETTING_ASYNC_DXVK: "Compilación Asincrónica de Shaders DXVK",
   SETTING_ENABLED: "Habilitado",
   SETTING_DXVK_HUD: "HUD DXVK",
+  SETTING_DXVK_HUD_DESC: "Se aplica la próxima vez que inicies el juego.",
   SETTING_DXVK_HUD_NONE: "Nada",
   SETTING_DXVK_HUD_FPS: "Solo FPS",
   SETTING_MTL_HUD: "Metal HUD",

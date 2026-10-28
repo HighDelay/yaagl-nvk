@@ -38,7 +38,8 @@ export function nvkOverrides(previous = ""): string {
 export function nvkEnvironment(
   root: string,
   state: string,
-  caller: Record<string, string>
+  caller: Record<string, string>,
+  hudEnabled = true
 ): Record<string, string> {
   return {
     ...caller,
@@ -61,7 +62,9 @@ export function nvkEnvironment(
     DXVK_CONFIG: ["dxvk.enableDescriptorBuffer = False", caller.DXVK_CONFIG]
       .filter(Boolean)
       .join(";"),
-    DXVK_HUD: caller.DXVK_HUD ?? "devinfo,fps,frametimes,scale=1.25",
+    DXVK_HUD: hudEnabled
+      ? caller.DXVK_HUD ?? "devinfo,fps,frametimes,scale=1.25"
+      : "0",
   };
 }
 

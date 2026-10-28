@@ -37,6 +37,7 @@ import { Locale } from "../locale";
 import { getWineDistributions, Wine, WineDistribution } from "../wine";
 import { Config } from "./config-def";
 import { createMetalHUDConfig } from "./metal-hud";
+import { createDXVKHUDConfig } from "./dxvk-hud";
 import { createGameInstallDirConfig } from "./game-install-dir";
 import { createRetinaConfig } from "./retina";
 import { createLeftCmdConfig } from "./left-cmd";
@@ -133,6 +134,7 @@ export async function createConfiguration({
   const [D3D12] = await createD3D12({ locale, config, wine });
   const [MFR] = await createMaxFrameRateConfig({ locale, config });
   const [MH] = await createMetalHUDConfig({ locale, config });
+  const [DH] = await createDXVKHUDConfig({ locale, config });
   const [R] = await createRetinaConfig({ locale, config });
   const [LC] = await createLeftCmdConfig({ locale, config });
   const [GID] = await createGameInstallDirConfig({
@@ -419,7 +421,14 @@ export async function createConfiguration({
                         </Box>
                         <Box {...cardStyle}>
                           <VStack spacing="$4" alignItems="stretch">
-                            <MH />
+                            <Show
+                              when={
+                                wine.attributes.renderBackend === "dxvk-nvk"
+                              }
+                              fallback={<MH />}
+                            >
+                              <DH />
+                            </Show>
                             <Divider />
                             <R />
                             <Divider />
@@ -642,6 +651,7 @@ export async function createInitialSetupConfiguration({
   });
   const [MFR] = await createMaxFrameRateConfig({ locale, config });
   const [MH] = await createMetalHUDConfig({ locale, config });
+  const [DH] = await createDXVKHUDConfig({ locale, config });
   const [R] = await createRetinaConfig({ locale, config });
   const [LC] = await createLeftCmdConfig({ locale, config });
   const [UL] = await createLocaleConfig({ locale, config });
@@ -883,7 +893,15 @@ export async function createInitialSetupConfiguration({
                 <VStack spacing="$6" alignItems="stretch" maxW="650px">
                   <Box {...cardStyle}>
                     <VStack spacing="$4" alignItems="stretch">
-                      <MH />
+                      <Show
+                        when={
+                          selectedDistro().attributes.renderBackend ===
+                          "dxvk-nvk"
+                        }
+                        fallback={<MH />}
+                      >
+                        <DH />
+                      </Show>
                       <Divider />
                       <R />
                       <Divider />

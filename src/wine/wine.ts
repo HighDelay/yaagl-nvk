@@ -29,6 +29,7 @@ export async function createWine(options: {
   const loaderBin = nvk ? nvk.wine : await getCorrectWineBinary();
   const selectedPrefix = nvk ? nvkPrefix(options.prefix) : options.prefix;
   const nvkState = nvk ? await initializeNVKState() : "";
+  let dxvkHudEnabled = true;
   const nvkHostOptions: Record<string, string> = {};
   if (nvk) {
     for (const name of ["DXVK_CONFIG", "DXVK_HUD"]) {
@@ -108,7 +109,7 @@ export async function createWine(options: {
       ...extra,
     };
     if (!nvk) return base;
-    const selected = nvkEnvironment(nvk.root, nvkState, base);
+    const selected = nvkEnvironment(nvk.root, nvkState, base, dxvkHudEnabled);
     // Prefix initialization creates system32 before the native pair can be
     // installed. Configuration helpers must not require that pair prematurely.
     if (bootstrap) selected.WINEDLLOVERRIDES = extra.WINEDLLOVERRIDES || "";
@@ -151,7 +152,12 @@ export async function createWine(options: {
     await setKey("wine_netbiosname", netbiosname);
   }
 
-  async function setProps(props: { retina: boolean; leftCmd: boolean }) {
+  async function setProps(props: {
+    retina: boolean;
+    leftCmd: boolean;
+    dxvkHud?: boolean;
+  }) {
+    dxvkHudEnabled = props.dxvkHud !== false;
     const cmd = `@echo off
 cd "%~dp0"
 reg add "HKEY_CURRENT_USER\\Software\\Wine\\Mac Driver" /v RetinaMode /t REG_SZ /d ${

@@ -60,6 +60,17 @@ describe("native NVK launch contract", () => {
     );
     expect(env.DXVK_HUD).toBe("");
   });
+  it("forces the HUD off when the launcher toggle is disabled", () => {
+    const env = nvkEnvironment(
+      "/runtime",
+      "/state",
+      { DXVK_HUD: "devinfo,fps,scale=2" },
+      false
+    );
+    expect(env.DXVK_HUD).toBe("0");
+    expect(env.DXVK_CONFIG).toBe("dxvk.enableDescriptorBuffer = False");
+    expect(env.DYLD_LIBRARY_PATH).toBe("/runtime/lib");
+  });
   it("keeps NVK on D3D11 even with an old D3D12 preference", () => {
     expect(graphicsArguments("dxvk-nvk", true, true)).toEqual(["-force-d3d11"]);
     expect(graphicsArguments("dxvk-nvk", false, false)).toEqual([

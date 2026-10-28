@@ -67,6 +67,7 @@ export const ko_KR: typeof zh_CN = {
   SETTING_ASYNC_DXVK: "DXVK 비동기 셰이더 컴파일",
   SETTING_ENABLED: "활성화",
   SETTING_DXVK_HUD: "DXVK HUD",
+  SETTING_DXVK_HUD_DESC: "다음 게임 실행부터 적용됩니다.",
   SETTING_DXVK_HUD_NONE: "없음",
   SETTING_DXVK_HUD_FPS: "FPS만",
   SETTING_DXVK_HUD_ALL: "모든 정보 보기",

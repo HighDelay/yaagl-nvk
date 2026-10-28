@@ -94,6 +94,8 @@ describe("actual Wine factory dispatch", () => {
         attributes: { renderBackend: "dxmt" },
       },
     });
+    await wine.setProps({ retina: false, leftCmd: false, dxvkHud: false });
+    vi.mocked(exec2).mockClear();
     await wine.exec2("game.exe", [], { WINEDLLOVERRIDES: "d3d11=b" });
     expect(vi.mocked(exec2).mock.calls[0][1]).toMatchObject({
       WINEPREFIX: "/Volumes/Games/launcher/wineprefix",
@@ -102,6 +104,7 @@ describe("actual Wine factory dispatch", () => {
     expect(vi.mocked(exec2).mock.calls[0][1]).not.toHaveProperty(
       "DYLD_LIBRARY_PATH"
     );
+    expect(vi.mocked(exec2).mock.calls[0][1]).not.toHaveProperty("DXVK_HUD");
   });
 
   it("forwards explicit host HUD/config options only through the NVK factory", async () => {
@@ -120,6 +123,35 @@ describe("actual Wine factory dispatch", () => {
     await wine.exec2("game.exe", []);
     expect(vi.mocked(exec2).mock.calls[0][1]).toMatchObject({
       DXVK_CONFIG: "dxvk.enableDescriptorBuffer = False;dxgi.syncInterval = 0",
+      DXVK_HUD: "fps,scale=2",
+    });
+  });
+
+  it("applies the saved HUD toggle to NVK launches and restores custom styles when enabled", async () => {
+    vi.mocked(hostEnvironment).mockImplementation(async name =>
+      name === "DXVK_HUD" ? "fps,scale=2" : ""
+    );
+    const wine = await createWine({
+      prefix: "/Volumes/Games/launcher/wineprefix",
+      distro: {
+        id: "nvk",
+        displayName: "NVK",
+        remoteUrl: "local://nvk-runtime",
+        attributes: { renderBackend: "dxvk-nvk" },
+      },
+    });
+    await wine.setProps({ retina: false, leftCmd: false, dxvkHud: false });
+    vi.mocked(exec).mockClear();
+    vi.mocked(exec2).mockClear();
+    await wine.exec2("game.exe", [], { DXVK_HUD: "devinfo,fps" });
+    expect(vi.mocked(exec2).mock.calls[0][1]).toMatchObject({ DXVK_HUD: "0" });
+    await wine.exec("cmd", ["/c", "child.exe"]);
+    expect(vi.mocked(exec).mock.calls[0][1]).toMatchObject({ DXVK_HUD: "0" });
+
+    await wine.setProps({ retina: false, leftCmd: false, dxvkHud: true });
+    vi.mocked(exec2).mockClear();
+    await wine.exec2("game.exe", []);
+    expect(vi.mocked(exec2).mock.calls[0][1]).toMatchObject({
       DXVK_HUD: "fps,scale=2",
     });
   });

@@ -69,6 +69,7 @@ export const vi_VN: typeof zh_CN = {
   SETTING_ASYNC_DXVK: "DXVK Asynchronous Shader Compiling",
   SETTING_ENABLED: "Bật",
   SETTING_DXVK_HUD: "DXVK HUD",
+  SETTING_DXVK_HUD_DESC: "Có hiệu lực khi khởi chạy trò chơi lần tiếp theo.",
   SETTING_DXVK_HUD_NONE: "Không",
   SETTING_DXVK_HUD_FPS: "Chỉ hiện FPS",
   SETTING_DXVK_HUD_ALL: "Hiện tất cả thông tin",

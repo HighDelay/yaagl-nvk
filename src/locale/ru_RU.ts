@@ -67,6 +67,7 @@ export const ru_RU: typeof zh_CN = {
   SETTING_ASYNC_DXVK: "Асинхронная компиляция шейдеров DXVK",
   SETTING_ENABLED: "Включено",
   SETTING_DXVK_HUD: "Оверлей DXVK",
+  SETTING_DXVK_HUD_DESC: "Применится при следующем запуске игры.",
   SETTING_DXVK_HUD_NONE: "Ничего",
   SETTING_DXVK_HUD_FPS: "Только FPS",
   SETTING_MTL_HUD: "Оверлей Metal",
