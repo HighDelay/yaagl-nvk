@@ -10,7 +10,7 @@ import shutil
 import subprocess
 
 repo = Path(__file__).resolve().parents[2]
-version = "0.1.1"
+version = "0.1.2"
 games = {
     "zzz": {"name": "ZZZ", "channel": "nap", "icon": "ZZZ_Bang.cr.png"},
     "gi": {"name": "Genshin Impact", "channel": "hk4e", "icon": "Paimon.cr.png"},
@@ -55,7 +55,8 @@ initial = {"wine_state": "update", "wine_update_tag": "driver-nvk-wine-11.0-1",
            "wine_update_url": "local://nvk-runtime", "config_block_net": "false"}
 if game_dir:
     initial["game_install_dir"] = game_dir
-initial.update({"config_steam_patch": "true", "config_timeout_fix": "true"})
+workarounds = "true" if args.game == "zzz" else "false"
+initial.update({"config_steam_patch": workarounds, "config_timeout_fix": workarounds})
 for key, value in initial.items():
     (storage / (key + ".neustorage")).write_text(value)
 app_name = "YAAGL NVK - " + game["name"] + ".app"

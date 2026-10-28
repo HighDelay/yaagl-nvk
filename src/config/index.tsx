@@ -60,31 +60,12 @@ import { createEnableHDRConfig } from "../clients/mhy/hk4e/config/enable-hdr";
 import createResolution from "../clients/mhy/hk4e/config/resolution";
 import createTimeoutFix from "../clients/mhy/hk4e/config/timeout-fix";
 
-export const RECOMMENDED_WINE_TAG = "11.0-1-crossover-signed-experimental";
-export const RECOMMENDED_WINE_URL =
-  "https://github.com/yaagl/anime-game-wine/releases/download/wine-crossover-11.0-1-signed/wine-crossover-11.0-1-osx64-signed.tar.xz";
-
-export async function applyRecommendedSettings() {
-  const channelClient = String(import.meta.env["YAAGL_CHANNEL_CLIENT"]);
-  const currentWineState = await getKeyOrDefault("wine_state", "");
-  const currentWineTag = await getKeyOrDefault("wine_tag", "");
-
-  if (currentWineState !== "ready" || currentWineTag !== RECOMMENDED_WINE_TAG) {
-    await setKey("wine_state", "update");
-    await setKey("wine_update_tag", RECOMMENDED_WINE_TAG);
-    await setKey("wine_update_url", RECOMMENDED_WINE_URL);
-  }
-
-  if (channelClient.startsWith("hk4e") || channelClient.startsWith("nap")) {
-    await setKey("config_steam_patch", "true");
-    await setKey("config_timeout_fix", "true");
-    await setKey("config_block_net", "false");
-  }
-
-  if (channelClient.startsWith("hkrpg")) {
-    await setKey("config_block_net", "true");
-  }
-}
+import { applyRecommendedSettings } from "./recommended-settings";
+export {
+  applyRecommendedSettings,
+  RECOMMENDED_WINE_TAG,
+  RECOMMENDED_WINE_URL,
+} from "./recommended-settings";
 
 const IconSun = createIcon({
   viewBox: "0 0 24 24",

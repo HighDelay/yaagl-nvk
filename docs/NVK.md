@@ -50,10 +50,18 @@ No ordinary Wine tree, CrossOver installation, macOS certificates, hosts file or
 boot arguments change. The vendor release does not identify its exact CrossOver
 patch revision; the launcher does not redistribute that binary archive.
 
-The packages enable YAAGL's existing **Steam Patch** and **timeout fix** options.
-The tested ZZZ profile needed both for its separate startup crash. HSR keeps its
-Jadeite step inside the Steam launch route. ZZZ gameplay is verified on RTX 2060
-SUPER / Tahoe 26.7.1; **GI/HSR gameplay is not qualified**.
+The ZZZ package enables YAAGL's existing **Steam Patch** and **timeout fix** options;
+the tested ZZZ profile needed both for its separate startup crash. Both default
+off for HSR and GI. HSR uses its ordinary Jadeite route, with the required `--`
+separator before game arguments. An explicitly enabled Steam route also installs
+its helpers. **Apply Recommended Settings** preserves an already selected NVK
+profile and uses these game-specific defaults. Existing HSR/GI users can apply
+those settings without replacing their NVK prefix.
+
+ZZZ gameplay is verified on RTX 2060 SUPER / Tahoe 26.7.1. After the HSR startup
+repair, StarRail and its browser create native DXVK/NVK devices on that hardware.
+**GI/HSR gameplay is not qualified**; device initialization does not establish
+correct menus, characters, cutscenes or sustained gameplay.
 
 ## Rendering settings and logs
 
@@ -98,7 +106,7 @@ python3 tools/nvk/package.py --game gi --region global --output /absolute/new/YA
 python3 tools/nvk/package.py --game hsr --region global --output /absolute/new/YAAGL-NVK-HSR
 python3 tools/nvk/combine.py \
   --zzz /absolute/new/YAAGL-NVK-ZZZ --gi /absolute/new/YAAGL-NVK-GI \
-  --hsr /absolute/new/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.1.1
+  --hsr /absolute/new/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.1.2
 ```
 
 Use `--region cn` for CN builds. The combiner verifies fresh launcher file hashes

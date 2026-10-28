@@ -104,7 +104,7 @@ export async function* patchProgram(
     );
   }
 
-  if (!server.id.startsWith("hkrpg")) {
+  if (!server.id.startsWith("hkrpg") || config.steamPatch) {
     await cp(
       resolve("./sidecar/protonextras/steam64.exe"),
       join(system32Dir, "steam.exe")

@@ -1,6 +1,6 @@
 import { Aria2 } from "@aria2";
 import { CommonUpdateProgram, createCommonUpdateUI } from "@common-update-ui";
-import { applyRecommendedSettings, RECOMMENDED_WINE_TAG } from "@config";
+import { applyRecommendedSettings } from "@config";
 import { Locale } from "@locale";
 import {
   rmrf_dangerously,
@@ -171,7 +171,7 @@ export async function createWineInstallProgram({
         throw new Error(
           `Wine initialization failed.\n\nPlease check the log file at:\n${resolve(
             "wineboot.log"
-          )}\n\n(Please ensure Rosetta 2 is installed.)\n\nOriginal error:\n${
+          )}\n\nOriginal error:\n${
             e instanceof Error ? e.message : JSON.stringify(e)
           }`
         );
@@ -252,10 +252,13 @@ export async function createWineInstallProgram({
     locale,
     defaultWineDistro: wineDistro,
     onSelectRecommended: async onBack => {
-      await applyRecommendedSettings();
+      const recommendedTag = await applyRecommendedSettings(
+        undefined,
+        wineDistro.id
+      );
       const versions = await getWineDistributions();
       const recommendedDistro =
-        versions.find(x => x.id === RECOMMENDED_WINE_TAG) ?? wineDistro;
+        versions.find(x => x.id === recommendedTag) ?? wineDistro;
       return createInstallerForDistro(recommendedDistro, onBack);
     },
     onSelectCustom: async (chosenDistro, onBack) => {

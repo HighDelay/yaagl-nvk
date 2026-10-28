@@ -91,7 +91,13 @@ describe("actual game launch programs", () => {
           expect(batch).toContain(
             "-platform_type CLOUD_THIRD_PARTY_PC -is_cloud 1"
           );
-        if (game.name === "HSR") expect(batch).toContain("jadeite.exe");
+        if (game.name === "HSR") {
+          expect(batch).toContain(
+            '"Z:\\Volumes\\Games\\test\\jadeite\\jadeite.exe" "Z:\\Volumes\\Games\\test\\game\\game.exe" --'
+          );
+          if (backend === "dxvk-nvk")
+            expect(batch).toContain('game.exe" -- -force-d3d11');
+        }
         expect(instance.exec2.mock.calls[0][0]).toBe("cmd");
         expect(instance.setNVExtension).toHaveBeenCalledTimes(
           game.name === "HSR" && backend === "dxmt" ? 1 : 0
@@ -121,8 +127,12 @@ describe("actual game launch programs", () => {
         WINE_ENABLE_TIMEOUT_FIX: "1",
       });
       if (game.name === "HSR") {
-        expect(instance.exec2.mock.calls[0][1][0]).toContain("jadeite.exe");
-        expect(instance.exec2.mock.calls[0][1][1]).toContain("game.exe");
+        expect(instance.exec2.mock.calls[0][1]).toEqual([
+          "Z:\\Volumes\\Games\\test\\jadeite\\jadeite.exe",
+          "Z:\\Volumes\\Games\\test\\game\\game.exe",
+          "--",
+          "-force-d3d11",
+        ]);
       }
     });
   }

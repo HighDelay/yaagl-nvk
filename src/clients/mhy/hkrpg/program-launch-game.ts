@@ -46,12 +46,14 @@ export async function* launchGameProgram({
     false,
     false
   );
+  // Jadeite's second argument is the launcher executable, not a game flag.
+  // "--" selects its default launcher before forwarding the graphics options.
   const cmd = `@echo off
 cd "%~dp0"
 cd /d "${wine.toWinePath(gameDir)}"
 "${wine.toWinePath(resolve("./jadeite/jadeite.exe"))}" "${wine.toWinePath(
     join(gameDir, gameExecutable)
-  )}" ${graphicsArgs.join(" ")}`;
+  )}" -- ${graphicsArgs.join(" ")}`;
   await writeFile(resolve("config.bat"), cmd);
   yield* patchProgram(gameDir, wine, server, config);
   await mkdirp(resolve("./logs"));
@@ -101,6 +103,7 @@ cd /d "${wine.toWinePath(gameDir)}"
         ? [
             wine.toWinePath(resolve("./jadeite/jadeite.exe")),
             wine.toWinePath(join(gameDir, gameExecutable)),
+            "--",
             ...graphicsArgs,
           ]
         : ["/c", `${wine.toWinePath(resolve("./config.bat"))}`],

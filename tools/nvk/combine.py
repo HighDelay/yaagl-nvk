@@ -35,13 +35,16 @@ for game, source in sources.items():
         raise SystemExit("Release archives must contain launchers only; use the installed driver runtime")
     records[game] = record
 
-if len({record["version"] for record in records.values()}) != 1 or len({record["yaagl_revision"] for record in records.values()}) != 1:
-    raise SystemExit("Use game builds from the same version and source revision")
+if (len({record["version"] for record in records.values()}) != 1
+    or len({record["yaagl_revision"] for record in records.values()}) != 1
+    or len({record["region"] for record in records.values()}) != 1):
+    raise SystemExit("Use game builds from the same version, region and source revision")
 output.mkdir(parents=True)
 for game, source in sources.items():
     shutil.copytree(source, output / game, symlinks=True)
 shutil.copyfile(repo / "LICENSE", output / "YAAGL-LICENSE.txt")
 shutil.copyfile(repo / "docs/NVK.md", output / "GUIDE.md")
+region = next(iter(records.values()))["region"]
 (output / "README.md").write_text("""# YAAGL NVK — ZZZ, GI and HSR
 
 Extract this entire folder. Open ZZZ, GI or HSR and use its Start YAAGL NVK.command.
@@ -60,7 +63,7 @@ builds. See GUIDE.md for setup, runtime checks, rollback and validation limits.
 Driver dependency licenses and source records are in its Wine/NVK runtime.
 Wine's download identity and installed hashes are recorded in wine-nvk/nvk-wine.json
 inside each launcher's data folder after setup. No games are included.
-""")
+""".replace("These are global\nbuilds.", "These are " + ("CN" if region == "cn" else "global") + "\nbuilds."))
 record = {"version": next(iter(records.values()))["version"],
           "packaging_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
           "installed_provider": "/Library/GPUBundles/nvmtl/wine", "bundled_runtime": False, "games": records}
