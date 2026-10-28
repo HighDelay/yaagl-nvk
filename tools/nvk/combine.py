@@ -57,8 +57,8 @@ downloads and prepares the pinned Wine 11.0-1 build on first setup. This archive
 contains no Wine, NVK or DXVK runtime, and there is no bundled renderer fallback.
 Select Settings → Wine → NVIDIA NVK + DXVK (local, experimental).
 
-ZZZ gameplay is verified on RTX 2060 SUPER / Tahoe 26.7.1. GI/HSR configurations
-and builds exist, but their gameplay has not been qualified. These are global
+ZZZ and HSR Global gameplay are confirmed on RTX 2060 SUPER / Tahoe 26.7.1.
+GI and CN gameplay remain unqualified. These are global
 builds. See GUIDE.md for setup, runtime checks, rollback and validation limits.
 Driver dependency licenses and source records are in its Wine/NVK runtime.
 Wine's download identity and installed hashes are recorded in wine-nvk/nvk-wine.json

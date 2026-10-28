@@ -11,6 +11,8 @@ permissions:
   pull-requests: "read"
 jobs:
   build:
+    # NVK archives use tools/nvk and the verified release-upload workflow.
+    if: ${{ !endsWith(github.ref_name, '-nvk') }}
     runs-on: macos-latest
     steps:
       - name: Checkout

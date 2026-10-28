@@ -58,10 +58,11 @@ its helpers. **Apply Recommended Settings** preserves an already selected NVK
 profile and uses these game-specific defaults. Existing HSR/GI users can apply
 those settings without replacing their NVK prefix.
 
-ZZZ gameplay is verified on RTX 2060 SUPER / Tahoe 26.7.1. After the HSR startup
-repair, StarRail and its browser create native DXVK/NVK devices on that hardware.
-**GI/HSR gameplay is not qualified**; device initialization does not establish
-correct menus, characters, cutscenes or sustained gameplay.
+ZZZ and HSR Global gameplay are confirmed on RTX 2060 SUPER / Tahoe 26.7.1,
+including world rendering, characters and UI. HSR 4.6.0 was confirmed after this
+startup repair, with Steam Patch and the timeout fix off. The supplied screenshots
+show about 60 FPS; they are not a controlled performance comparison.
+**GI and CN gameplay remain unqualified.**
 
 ## Rendering settings and logs
 
@@ -128,5 +129,5 @@ it checks repeat setup, tamper detection and preservation of ordinary Wine.
 Set `YAAGL_TEST_WINE_ARCHIVE` and a fresh `YAAGL_TEST_WINE_WORK` to run it.
 
 These checks do not replace sustained gameplay, video/scene-transition and repeat
-launch testing. GI/HSR still need actual gameplay tests. A controlled performance
+launch testing. GI and CN still need actual gameplay tests. A controlled performance
 comparison and commercial CrossOver qualification have not been done.

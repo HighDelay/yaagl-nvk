@@ -6,9 +6,8 @@ It keeps separate game prefixes and bypasses MoltenVK/NVMTL shader translation f
 D3D11 rendering. [Setup, build instructions and test status](docs/NVK.md).
 It uses NVK and the patched DXVK pair from `/Library/GPUBundles/nvmtl/wine`.
 The launcher archive contains no runtime; compatible Wine downloads on first setup.
-ZZZ world rendering, characters and the FPS overlay were confirmed on RTX 2060
-SUPER / Tahoe 26.7.1. HSR now reaches native DXVK/NVK device initialization;
-GI/HSR gameplay and long-session stability still need testing. The
+ZZZ and HSR Global gameplay, world rendering, characters and UI were confirmed on
+RTX 2060 SUPER / Tahoe 26.7.1. GI/CN gameplay and long-session stability still need testing. The
 existing YAAGL backends remain available.
 
 Based on [Yet another anime game launcher](https://github.com/yaagl/yet-another-anime-game-launcher).
