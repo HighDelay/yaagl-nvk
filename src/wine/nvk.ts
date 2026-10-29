@@ -9,10 +9,14 @@ export interface NVKRuntime {
   helper: string;
   wine: string;
   id: string;
+  supportsD3d12: boolean;
+  supportsDLSS: boolean;
   manifest: {
     schema_version: number;
     runtime_id: string;
     files: Record<string, string>;
+    vkd3d?: { version: string; source_revision: string };
+    dlss?: { nvapi_version: string; ngx_version: string };
   };
 }
 
@@ -55,6 +59,10 @@ export async function loadNVKRuntime(
     helper: provider.helper,
     wine,
     id: provider.checked.runtime_id,
+    supportsD3d12:
+      !!provider.manifest.vkd3d && provider.checked.supports_d3d12 === true,
+    supportsDLSS:
+      !!provider.manifest.dlss && provider.checked.supports_dlss === true,
     manifest: provider.manifest,
   };
 }
@@ -86,17 +94,27 @@ export async function initializeNVKState() {
 }
 
 export async function prepareNVKPrefix(
-  wine: Pick<Wine, "prefix" | "attributes">
+  wine: Pick<Wine, "prefix" | "attributes">,
+  d3d12 = false
 ) {
   const runtime = await loadNVKRuntime(wine.attributes.nvkRuntimeRoot);
-  await exec([runtime.helper, "install", runtime.root, wine.prefix]);
+  if (d3d12 && !runtime.supportsD3d12)
+    throw new Error(
+      "Update the driver Wine/NVK runtime to a build containing vkd3d-proton for D3D12."
+    );
+  await exec([
+    runtime.helper,
+    d3d12 ? "install-d3d12" : "install",
+    runtime.root,
+    wine.prefix,
+  ]);
   return runtime;
 }
 
 export async function prepareNVKGame(
   wine: Pick<Wine, "prefix" | "attributes">,
   gameDir: string,
-  options: { reshade?: boolean; hdr?: boolean }
+  options: { reshade?: boolean; hdr?: boolean; d3d12?: boolean; dlss?: boolean }
 ) {
   if (wine.attributes.renderBackend !== "dxvk-nvk") return;
   if (options.reshade) {
@@ -109,24 +127,66 @@ export async function prepareNVKGame(
       "Disable HDR before using the NVIDIA NVK backend; this runtime supports SDR presentation."
     );
   }
-  const runtime = await prepareNVKPrefix(wine);
-  await checkNVKGameDirectory(runtime, gameDir);
+  const runtime = await loadNVKRuntime(wine.attributes.nvkRuntimeRoot);
+  if (options.d3d12 && !runtime.supportsD3d12)
+    throw new Error(
+      "Update the driver Wine/NVK runtime to a build containing vkd3d-proton for D3D12."
+    );
+  const dlss = options.d3d12 === true && options.dlss === true;
+  if (dlss && !runtime.supportsDLSS)
+    throw new Error(
+      "Update the driver Wine/NVK runtime to a build containing NGX/NVAPI for DLSS."
+    );
+  await checkNVKGameDirectory(runtime, gameDir, options.d3d12, dlss);
+  if (
+    !dlss &&
+    (await fileOrDirExists(join(wine.prefix, ".nvk-dlss-state.json")))
+  ) {
+    await exec([
+      runtime.helper,
+      "restore-dlss",
+      runtime.root,
+      wine.prefix,
+      runtime.wine,
+    ]);
+  }
+  await exec([
+    runtime.helper,
+    dlss ? "install-dlss" : options.d3d12 ? "install-d3d12" : "install",
+    runtime.root,
+    wine.prefix,
+    ...(dlss ? [runtime.wine] : []),
+  ]);
 }
 
 export async function checkNVKGameDirectory(
   runtime: NVKRuntime,
-  gameDir: string
+  gameDir: string,
+  d3d12 = false,
+  dlss = false
 ) {
   const entries = await Neutralino.filesystem.readDirectory(gameDir);
   for (const entry of entries) {
     const name = entry.entry.toLowerCase();
-    if (!["dxgi.dll", "d3d11.dll"].includes(name)) continue;
+    const vkd3d = ["d3d12.dll", "d3d12core.dll"].includes(name);
+    const ngx = ["nvapi64.dll", "nvngx.dll", "_nvngx.dll"].includes(name);
+    if (
+      !["dxgi.dll", "d3d11.dll"].includes(name) &&
+      !(d3d12 && vkd3d) &&
+      !(dlss && ngx)
+    )
+      continue;
     const hash = (
       await exec(["/usr/bin/shasum", "-a", "256", join(gameDir, entry.entry)])
     ).stdOut
       .trim()
       .split(/\s+/)[0];
-    if (hash !== runtime.manifest.files["dxvk/x64/" + name]) {
+    if (
+      hash !==
+      runtime.manifest.files[
+        (ngx ? "dlss" : vkd3d ? "vkd3d" : "dxvk") + "/x64/" + name
+      ]
+    ) {
       throw new Error(
         `Disable the existing ${entry.entry} in the game folder before using NVIDIA NVK. The launcher has left that file unchanged.`
       );
@@ -134,7 +194,12 @@ export async function checkNVKGameDirectory(
   }
 }
 
-export async function recordNVKLaunch(runtime: NVKRuntime, directory: string) {
+export async function recordNVKLaunch(
+  runtime: NVKRuntime,
+  directory: string,
+  d3d12 = false,
+  dlss = false
+) {
   await mkdirp(directory);
   await writeFile(
     join(directory, "runtime.json"),
@@ -146,7 +211,10 @@ export async function recordNVKLaunch(runtime: NVKRuntime, directory: string) {
         wine: runtime.wine,
         files: runtime.manifest.files,
         backend: "dxvk-nvk",
-        game_api: "D3D11",
+        game_api: d3d12 ? "D3D12" : "D3D11",
+        ...(d3d12 ? { vkd3d: runtime.manifest.vkd3d } : {}),
+        dlss_enabled: dlss,
+        ...(dlss ? { dlss: runtime.manifest.dlss } : {}),
       },
       null,
       2

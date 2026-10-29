@@ -66,7 +66,7 @@ export const ru_RU: typeof zh_CN = {
   SETTING_WINE_VERSION: "Версия Wine",
   SETTING_ASYNC_DXVK: "Асинхронная компиляция шейдеров DXVK",
   SETTING_ENABLED: "Включено",
-  SETTING_DXVK_HUD: "Оверлей DXVK",
+  SETTING_DXVK_HUD: "Оверлей DXVK / NVK",
   SETTING_DXVK_HUD_DESC: "Применится при следующем запуске игры.",
   SETTING_DXVK_HUD_NONE: "Ничего",
   SETTING_DXVK_HUD_FPS: "Только FPS",

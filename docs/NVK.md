@@ -33,7 +33,7 @@ matching driver **with the Wine/NVK runtime installed**.
    FPS/frame-time/device overlay are selected automatically. Use SDR and leave
    ReShade off for this backend.
 
-**The launcher archive contains no Wine, NVK or DXVK runtime.** Both NVK and the
+**The launcher archive contains no Wine or graphics runtime.** Both NVK and the
 patched x64 `d3d11.dll` / `dxgi.dll` come from **`/Library/GPUBundles/nvmtl/wine`**.
 There is no bundled provider fallback or separate DXVK download. To update DXVK,
 update both DLLs in the driver runtime and regenerate its manifest/checksums;
@@ -66,19 +66,68 @@ show about 60 FPS; they are not a controlled performance comparison.
 
 ## Rendering settings and logs
 
+### ZZZ D3D12 and optional DLSS
+
+**Settings → Game → DirectX 12 (vkd3d-proton)** is an explicit, default-off
+choice for ZZZ, saved separately from D3DMetal. It requests `-use-d3d12` without
+`-force-d3d11`. Turning it off returns to D3D11. HSR/GI keep their D3D11 routes.
+The installed driver must contain the matched vkd3d-proton 3.1 `d3d12.dll` and
+`d3d12core.dll`; DXGI still comes from the existing DXVK pair.
+
+**DLSS support (experimental)** is a separate, default-off checkbox in the same
+panel. It requires D3D12 and a provider containing the pinned NVIDIA Wine NGX
+pair and DXVK-NVAPI. The driver's helper installs those DLLs with backups and
+registers NGX in this launcher's private prefix using its matching Wine loader.
+Then select DLSS Quality/Performance inside the game. Disabling this launcher
+option restores only NGX/NVAPI and its original registry value before the next
+launch, preserving D3D12/DXVK. Turn off DLSS in the game before doing so.
+
+DLSSG is not forced on or blocked: the game/library keeps its normal hardware
+checks. DLSS SR is user-confirmed on RTX 2060 SUPER; frame generation, ray
+tracing and other GPUs remain unqualified. ZZZ's Steam Patch and timeout fix
+remain enabled. Use the supplied Start command and normal Launch button; direct
+Wine shortcuts missed the full preparation flow and crashed during diagnosis.
+
+The D3D12 path is `D3D12 → vkd3d-proton → Wine Vulkan → native NVK → NVIDIA GPU`.
+ZZZ D3D12 scenery, characters, UI and DLSS Quality/HUD were user-confirmed on
+RTX 2060 SUPER / Tahoe 26.7.1. Native tests cover DXIL shaders, readback, fences,
+120 presentations and resize; DLSS evaluated three frames with 4,680 checked
+colour values and zero mismatches. These are correctness checks, not FPS gains.
+
+**Driver dependency:** the new driver build is held at the user's request.
+The currently published D3D11-only driver lacks D3D12/NGX components. This
+launcher release still supports that driver's existing D3D11 path, and refuses
+requested new features with an update message before modifying prefix DLLs.
+It does not download a separate vkd3d/NGX runtime. After a matching driver is
+built, its source-integrated helper still needs final compiled rollback tests.
+For isolated testing, `YAAGL_NVK_RUNTIME_ROOT=/absolute/provider` selects a
+validated provider; normal launches use `/Library/GPUBundles/nvmtl/wine`.
+
+### HUD
+
+Settings → General → **DXVK / NVK HUD** toggles the overlay for this backend
+in normal settings and custom first setup. It defaults on and takes effect on
+the next game launch. D3D11 uses the existing DXVK device/FPS/frame-time HUD;
+D3D12 uses a native presentation FPS/ms box. It includes application stalls,
+not just GPU time. The small cached bitmap is copied by the GPU, with a CPU
+upload refreshed up to four times per second and no game-frame CPU readback.
+
+When disabled, both `DXVK_HUD` and Wine-forwarded `WINE_NVK_HUD` are cleared.
+Host `DXVK_HUD`/`NVK_HUD` values can customize the enabled path. Other Wine
+backends keep their existing Metal HUD control.
+
+### D3D11 settings
+
 `dxvk.enableDescriptorBuffer = False` remains the default: descriptor buffers lost
 ZZZ characters and HUD text; descriptor sets restored both. DXVK logs should say
 `Binding model: Legacy`. FPS/device/frame-time HUD defaults to 1.25× scale.
-**Unreleased source option:** Settings → General → **DXVK HUD** toggles the overlay
-for the NVK backend, in normal settings and custom first setup. It defaults on,
-is saved per launcher and
-applies on the next game launch. Turning it off forces `DXVK_HUD=0`, including for
-child processes. When enabled, host `DXVK_HUD` values can customize its style.
 Host `DXVK_CONFIG` values remain available for diagnostics. Other Wine backends
 keep their existing Metal HUD control.
 
 Each launcher has separate data, prefix, caches and logs. Every game run records
-`runtime.json` and DXVK logs beside its normal log in a `.nvk` folder. The record
+`runtime.json` and DXVK logs beside its normal log in a `.nvk` folder. D3D12
+also records `vkd3d.log`, and `runtime.json` identifies the selected API and
+vkd3d version. Caches remain in the launcher's private `nvk-state`. The record
 identifies the installed provider and private Wine paths separately. Library logs
 must identify the installed `libnvk_wine.dylib` and `libnvk_renderer.dylib`.
 The runtime's `libMoltenVK.dylib` is an alias to its NVK frontend, not MoltenVK.
@@ -91,10 +140,13 @@ Quit the game and its Wine processes. From a game launcher's folder:
 
 ```sh
 /Library/GPUBundles/nvmtl/wine/bin/nvk-runtime restore \
-  /Library/GPUBundles/nvmtl/wine "$(pwd)/launcher-data/wineprefix-nvk"
+  /Library/GPUBundles/nvmtl/wine "$(pwd)/launcher-data/wineprefix-nvk" \
+  "$(pwd)/launcher-data/wine-nvk/bin/wine"
 ```
 
-The helper validates both originals before replacing either DLL. It refuses
+The helper preflights all original DLL groups and the NGX registry value before
+restoring them. The Wine argument is required when DLSS was installed; it may
+be omitted on older D3D11-only helpers. It refuses
 unexpected modified DLLs/backups. The journal remains restorable after updating
 the runtime. A byte-identical DLL pair may adopt a new runtime identity without
 losing originals. Selecting another Wine distribution uses its ordinary prefix.
@@ -112,7 +164,7 @@ python3 tools/nvk/package.py --game gi --region global --output /absolute/new/YA
 python3 tools/nvk/package.py --game hsr --region global --output /absolute/new/YAAGL-NVK-HSR
 python3 tools/nvk/combine.py \
   --zzz /absolute/new/YAAGL-NVK-ZZZ --gi /absolute/new/YAAGL-NVK-GI \
-  --hsr /absolute/new/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.1.2
+  --hsr /absolute/new/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.2.0
 ```
 
 Use `--region cn` for CN builds. The combiner verifies fresh launcher file hashes

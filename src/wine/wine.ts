@@ -24,15 +24,29 @@ export async function createWine(options: {
 }) {
   const nvk =
     options.distro.attributes.renderBackend === "dxvk-nvk"
-      ? await loadNVKRuntime(options.distro.attributes.nvkRuntimeRoot)
+      ? await loadNVKRuntime(
+          options.distro.attributes.nvkRuntimeRoot ||
+            (await hostEnvironment("YAAGL_NVK_RUNTIME_ROOT").catch(
+              () => undefined
+            )) ||
+            undefined
+        )
       : undefined;
   const loaderBin = nvk ? nvk.wine : await getCorrectWineBinary();
   const selectedPrefix = nvk ? nvkPrefix(options.prefix) : options.prefix;
   const nvkState = nvk ? await initializeNVKState() : "";
   let dxvkHudEnabled = true;
+  let nativeD3d12 = false;
+  let nativeDLSS = false;
   const nvkHostOptions: Record<string, string> = {};
   if (nvk) {
-    for (const name of ["DXVK_CONFIG", "DXVK_HUD"]) {
+    for (const name of [
+      "DXVK_CONFIG",
+      "DXVK_HUD",
+      "NVK_HUD",
+      "VKD3D_CONFIG",
+      "VKD3D_DEBUG",
+    ]) {
       const value = await hostEnvironment(name).catch(() => undefined);
       if (value) nvkHostOptions[name] = value;
     }
@@ -69,8 +83,12 @@ export async function createWine(options: {
   ) {
     if (nvk && log_file) {
       const directory = log_file + ".nvk";
-      await recordNVKLaunch(nvk, directory);
-      env = { ...env, DXVK_LOG_PATH: directory };
+      await recordNVKLaunch(nvk, directory, nativeD3d12, nativeDLSS);
+      env = {
+        ...env,
+        DXVK_LOG_PATH: directory,
+        VKD3D_LOG_FILE: toWinePath(join(directory, "vkd3d.log")),
+      };
     }
     return await unixExec2(
       program == "copy"
@@ -109,7 +127,14 @@ export async function createWine(options: {
       ...extra,
     };
     if (!nvk) return base;
-    const selected = nvkEnvironment(nvk.root, nvkState, base, dxvkHudEnabled);
+    const selected = nvkEnvironment(
+      nvk.root,
+      nvkState,
+      base,
+      dxvkHudEnabled,
+      nativeD3d12,
+      nativeDLSS
+    );
     // Prefix initialization creates system32 before the native pair can be
     // installed. Configuration helpers must not require that pair prematurely.
     if (bootstrap) selected.WINEDLLOVERRIDES = extra.WINEDLLOVERRIDES || "";
@@ -156,8 +181,20 @@ export async function createWine(options: {
     retina: boolean;
     leftCmd: boolean;
     dxvkHud?: boolean;
+    useNVKD3D12?: boolean;
+    useNVKDLSS?: boolean;
   }) {
     dxvkHudEnabled = props.dxvkHud !== false;
+    if (nvk && props.useNVKD3D12 && !nvk.supportsD3d12)
+      throw new Error(
+        "Update the driver Wine/NVK runtime for vkd3d-proton D3D12."
+      );
+    nativeD3d12 = !!nvk && props.useNVKD3D12 === true;
+    nativeDLSS = nativeD3d12 && props.useNVKDLSS === true;
+    if (nativeDLSS && !nvk?.supportsDLSS)
+      throw new Error(
+        "Update the driver Wine/NVK runtime to a build containing NGX/NVAPI for DLSS."
+      );
     const cmd = `@echo off
 cd "%~dp0"
 reg add "HKEY_CURRENT_USER\\Software\\Wine\\Mac Driver" /v RetinaMode /t REG_SZ /d ${
@@ -207,7 +244,13 @@ reg add "HKEY_LOCAL_MACHINE\\SOFTWARE\\NVIDIA Corporation\\Global\\NGXCore" /v F
     setNVExtension,
     attributes: {
       ...options.distro.attributes,
-      ...(nvk ? { nvkRuntimeRoot: nvk.root, nvkWineRoot: nvk.wineRoot } : {}),
+      ...(nvk
+        ? {
+            nvkRuntimeRoot: nvk.root,
+            nvkWineRoot: nvk.wineRoot,
+            supportsD3d12: nvk.supportsD3d12 === true,
+          }
+        : {}),
     },
   };
 }

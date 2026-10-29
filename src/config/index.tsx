@@ -648,6 +648,7 @@ export async function createInitialSetupConfiguration({
     locale,
     config,
     supportsD3d12: () => selectedDistro().attributes.supportsD3d12 === true,
+    nativeNVK: () => selectedDistro().attributes.renderBackend === "dxvk-nvk",
   });
   const [MFR] = await createMaxFrameRateConfig({ locale, config });
   const [MH] = await createMetalHUDConfig({ locale, config });

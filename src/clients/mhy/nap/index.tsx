@@ -36,12 +36,14 @@ export async function createNAPChannelClient({
   return {
     ...game,
     sophon: game,
-    supportsD3d12: wine.attributes.renderBackend !== "dxvk-nvk",
+    supportsD3d12: true,
     uiContent: await getGameArtwork(locale, server, icon),
     async *launch(config: Config) {
       if (!(await game.canLaunch())) return;
       await prepareNVKGame(wine, game.installDir(), {
         reshade: config.reshade,
+        d3d12: config.useNVKD3D12,
+        dlss: config.useNVKDLSS,
       });
       if (config.reshade) {
         yield* checkAndDownloadReshade(aria2, wine, game.installDir());

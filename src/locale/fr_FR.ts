@@ -69,7 +69,7 @@ export const fr_FR: typeof zh_CN = {
   SETTING_WINE_VERSION: "Distribution de Wine",
   SETTING_ASYNC_DXVK: "Compilation de shaders asynchrones DXVK",
   SETTING_ENABLED: "Activé",
-  SETTING_DXVK_HUD: "HUD DXVK",
+  SETTING_DXVK_HUD: "HUD DXVK / NVK",
   SETTING_DXVK_HUD_DESC: "Prend effet au prochain lancement du jeu.",
   SETTING_DXVK_HUD_NONE: "Aucun",
   SETTING_DXVK_HUD_FPS: "FPS Seulement",

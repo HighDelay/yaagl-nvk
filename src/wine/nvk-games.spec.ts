@@ -62,6 +62,26 @@ describe("actual game launch programs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+  for (const steamPatch of [false, true]) {
+    it(`ZZZ: native D3D12 removes forced D3D11 with Steam=${steamPatch}`, async () => {
+      const instance = wine("dxvk-nvk");
+      for await (const step of launchZZZ({
+        gameDir: "/game",
+        gameExecutable: "ZenlessZoneZero.exe",
+        wine: instance as unknown as Wine,
+        config: { useD3D12: false, useNVKD3D12: true, steamPatch } as Config,
+        server: { id: "nap_global" } as Server,
+      }))
+        void step;
+      const batch = vi
+        .mocked(writeFile)
+        .mock.calls.find(call => call[0].endsWith("config.bat"))?.[1];
+      expect(batch).toContain("-use-d3d12");
+      expect(batch).not.toContain("-force-d3d11");
+      if (steamPatch)
+        expect(instance.exec2.mock.calls[0][1]).toContain("-use-d3d12");
+    });
+  }
 
   for (const game of games) {
     for (const backend of ["dxvk-nvk", "dxmt"] as const) {

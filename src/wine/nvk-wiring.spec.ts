@@ -19,6 +19,8 @@ vi.mock("./nvk", () => ({
     wineRoot: "/Volumes/Games/launcher/wine-nvk",
     wine: "/Volumes/Games/launcher/wine-nvk/bin/wine",
     id: "test-runtime",
+    supportsD3d12: true,
+    supportsDLSS: true,
   })),
   initializeNVKState: vi.fn(async () => "/Volumes/Games/launcher/nvk-state"),
   recordNVKLaunch: vi.fn(),
@@ -105,6 +107,78 @@ describe("actual Wine factory dispatch", () => {
       "DYLD_LIBRARY_PATH"
     );
     expect(vi.mocked(exec2).mock.calls[0][1]).not.toHaveProperty("DXVK_HUD");
+  });
+  it("records and launches D3D12 only after explicitly selecting it", async () => {
+    const wine = await createWine({
+      prefix: "/prefix",
+      distro: {
+        id: "nvk",
+        displayName: "NVK",
+        remoteUrl: "local://nvk-runtime",
+        attributes: { renderBackend: "dxvk-nvk" },
+      },
+    });
+    await wine.setProps({ retina: false, leftCmd: false, useNVKD3D12: true });
+    vi.mocked(exec2).mockClear();
+    await wine.exec2("game.exe", [], {}, "/run/game.log");
+    expect(vi.mocked(exec2).mock.calls[0][1]).toMatchObject({
+      WINEDLLOVERRIDES: "d3d11,dxgi,d3d12,d3d12core=n",
+      VKD3D_LOG_FILE: "Z:\\run\\game.log.nvk\\vkd3d.log",
+    });
+    expect(recordNVKLaunch).toHaveBeenLastCalledWith(
+      expect.anything(),
+      "/run/game.log.nvk",
+      true,
+      false
+    );
+    await wine.setProps({ retina: false, leftCmd: false, useNVKD3D12: false });
+    vi.mocked(exec2).mockClear();
+    await wine.exec2("game.exe", []);
+    expect(vi.mocked(exec2).mock.calls[0][1]).toMatchObject({
+      WINEDLLOVERRIDES: "d3d11,dxgi=n",
+    });
+  });
+  it("propagates the explicit DLSS setting to the real Wine child environment and launch record", async () => {
+    const wine = await createWine({
+      prefix: "/prefix",
+      distro: {
+        id: "nvk",
+        displayName: "NVK",
+        remoteUrl: "local://nvk-runtime",
+        attributes: { renderBackend: "dxvk-nvk" },
+      },
+    });
+    await wine.setProps({
+      retina: false,
+      leftCmd: false,
+      useNVKD3D12: true,
+      useNVKDLSS: true,
+    });
+    vi.mocked(exec2).mockClear();
+    await wine.exec2("game.exe", [], {}, "/dlss/game.log");
+    expect(vi.mocked(exec2).mock.calls[0][1]).toMatchObject({
+      DXVK_ENABLE_NVAPI: "1",
+      WINE_NVK_EXPERIMENTAL: "dlss",
+      WINEDLLOVERRIDES: "d3d11,dxgi,d3d12,d3d12core,nvapi64,nvngx,_nvngx=n",
+    });
+    expect(recordNVKLaunch).toHaveBeenLastCalledWith(
+      expect.anything(),
+      "/dlss/game.log.nvk",
+      true,
+      true
+    );
+    await wine.setProps({
+      retina: false,
+      leftCmd: false,
+      useNVKD3D12: false,
+      useNVKDLSS: true,
+    });
+    vi.mocked(exec2).mockClear();
+    await wine.exec2("game.exe", []);
+    expect(vi.mocked(exec2).mock.calls[0][1]).toMatchObject({
+      DXVK_ENABLE_NVAPI: "0",
+      WINE_NVK_EXPERIMENTAL: "",
+    });
   });
 
   it("forwards explicit host HUD/config options only through the NVK factory", async () => {

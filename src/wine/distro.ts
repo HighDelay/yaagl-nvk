@@ -107,7 +107,7 @@ export async function getWineDistributions(): Promise<WineDistribution[]> {
         id: NVK_RUNTIME_ID,
         displayName: "NVIDIA NVK + DXVK (local, experimental)",
         remoteUrl: "local://nvk-runtime",
-        attributes: { renderBackend: "dxvk-nvk", supportsD3d12: false },
+        attributes: { renderBackend: "dxvk-nvk", supportsD3d12: true },
       },
       ...YAAGL_BUILTIN_WINE,
     ];

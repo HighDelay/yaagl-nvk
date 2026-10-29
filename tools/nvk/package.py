@@ -10,7 +10,7 @@ import shutil
 import subprocess
 
 repo = Path(__file__).resolve().parents[2]
-version = "0.1.2"
+version = "0.2.0"
 games = {
     "zzz": {"name": "ZZZ", "channel": "nap", "icon": "ZZZ_Bang.cr.png"},
     "gi": {"name": "Genshin Impact", "channel": "hk4e", "icon": "Paimon.cr.png"},

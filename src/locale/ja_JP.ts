@@ -67,7 +67,7 @@ export const ja_JP: typeof zh_CN = {
   SETTING_WINE_VERSION: "Wineディストリビューション",
   SETTING_ASYNC_DXVK: "DXVK 非同期シェーダーコンパイル",
   SETTING_ENABLED: "有効",
-  SETTING_DXVK_HUD: "DXVK HUD",
+  SETTING_DXVK_HUD: "DXVK / NVK HUD",
   SETTING_DXVK_HUD_DESC: "次回のゲーム起動時に反映されます。",
   SETTING_DXVK_HUD_NONE: "なし",
   SETTING_DXVK_HUD_FPS: "FPSのみ",

@@ -19,6 +19,7 @@ import {
   loadNVKProvider,
   loadNVKRuntime,
   prepareNVKPrefix,
+  prepareNVKGame,
 } from "./nvk";
 const installed = INSTALLED_NVK_ROOT;
 let manifest: {
@@ -26,6 +27,8 @@ let manifest: {
   kind: string;
   runtime_id: string;
   files: Record<string, string>;
+  vkd3d?: { version: string; source_revision: string };
+  dlss?: { nvapi_version: string; ngx_version: string };
 };
 describe("driver-owned NVK/DXVK and downloaded Wine selection", () => {
   beforeEach(() => {
@@ -36,9 +39,14 @@ describe("driver-owned NVK/DXVK and downloaded Wine selection", () => {
       runtime_id: "driver-provider",
       files: { "bin/nvk-runtime": "helper-hash" },
     };
-    vi.mocked(fileOrDirExists).mockResolvedValue(true);
+    vi.mocked(fileOrDirExists).mockImplementation(
+      async path => !String(path).endsWith(".nvk-dlss-state.json")
+    );
     vi.stubGlobal("Neutralino", {
-      filesystem: { readFile: vi.fn(async () => JSON.stringify(manifest)) },
+      filesystem: {
+        readFile: vi.fn(async () => JSON.stringify(manifest)),
+        readDirectory: vi.fn(async () => []),
+      },
     });
     vi.mocked(exec).mockImplementation(async command => {
       const parts = command as string[];
@@ -46,10 +54,95 @@ describe("driver-owned NVK/DXVK and downloaded Wine selection", () => {
         parts[0] === "/usr/bin/shasum"
           ? "helper-hash  artifact"
           : parts[1] === "check"
-          ? JSON.stringify({ result: "PASS", runtime_id: manifest.runtime_id })
+          ? JSON.stringify({
+              result: "PASS",
+              runtime_id: manifest.runtime_id,
+              supports_d3d12: !!manifest.vkd3d,
+              supports_dlss: !!manifest.dlss,
+            })
           : "";
       return { stdOut, stdErr: "", exitCode: 0, pid: 1 };
     });
+  });
+  it("rejects DLSS without the driver component before modifying a prefix", async () => {
+    manifest.vkd3d = { version: "3.1", source_revision: "upstream" };
+    await expect(
+      prepareNVKGame(
+        { prefix: "/prefix", attributes: { renderBackend: "dxvk-nvk" } },
+        "/game",
+        { d3d12: true, dlss: true }
+      )
+    ).rejects.toThrow("containing NGX/NVAPI");
+    expect(
+      vi
+        .mocked(exec)
+        .mock.calls.some(c =>
+          String((c[0] as string[])[1]).startsWith("install")
+        )
+    ).toBe(false);
+  });
+  it("installs DLSS with the matching Wine executable and restores it when disabled", async () => {
+    manifest.vkd3d = { version: "3.1", source_revision: "upstream" };
+    manifest.dlss = { nvapi_version: "0.9.2", ngx_version: "610.57.04" };
+    const wine = {
+      prefix: "/prefix",
+      attributes: { renderBackend: "dxvk-nvk" as const },
+    };
+    await prepareNVKGame(wine, "/game", { d3d12: true, dlss: true });
+    expect(exec).toHaveBeenCalledWith([
+      installed + "/bin/nvk-runtime",
+      "install-dlss",
+      installed,
+      "/prefix",
+      "/launcher/wine-nvk/bin/wine",
+    ]);
+    vi.mocked(exec).mockClear();
+    vi.mocked(fileOrDirExists).mockResolvedValue(true);
+    await prepareNVKGame(wine, "/game", { d3d12: true, dlss: false });
+    const mutations = vi
+      .mocked(exec)
+      .mock.calls.map(c => c[0] as string[])
+      .filter(c => c[0].endsWith("nvk-runtime") && c[1] !== "check");
+    expect(mutations).toEqual([
+      [
+        installed + "/bin/nvk-runtime",
+        "restore-dlss",
+        installed,
+        "/prefix",
+        "/launcher/wine-nvk/bin/wine",
+      ],
+      [installed + "/bin/nvk-runtime", "install-d3d12", installed, "/prefix"],
+    ]);
+  });
+  it("refuses a different game-local NGX DLL but leaves the game's DLSS feature DLL alone", async () => {
+    manifest.vkd3d = { version: "3.1", source_revision: "upstream" };
+    manifest.dlss = { nvapi_version: "0.9.2", ngx_version: "610.57.04" };
+    vi.mocked(Neutralino.filesystem.readDirectory).mockResolvedValue([
+      { entry: "nvngx.dll", type: "FILE" },
+    ]);
+    await expect(
+      prepareNVKGame(
+        { prefix: "/prefix", attributes: { renderBackend: "dxvk-nvk" } },
+        "/game",
+        { d3d12: true, dlss: true }
+      )
+    ).rejects.toThrow("existing nvngx.dll");
+    vi.mocked(Neutralino.filesystem.readDirectory).mockResolvedValue([
+      { entry: "nvngx_dlss.dll", type: "FILE" },
+      { entry: "nvngx_dlssg.dll", type: "FILE" },
+    ]);
+    await prepareNVKGame(
+      { prefix: "/prefix", attributes: { renderBackend: "dxvk-nvk" } },
+      "/game",
+      { d3d12: true, dlss: true }
+    );
+    expect(exec).toHaveBeenCalledWith([
+      installed + "/bin/nvk-runtime",
+      "install-dlss",
+      installed,
+      "/prefix",
+      "/launcher/wine-nvk/bin/wine",
+    ]);
   });
   it("uses the installed provider and the separately prepared Wine loader", async () => {
     expect(await loadNVKRuntime()).toMatchObject({
@@ -93,5 +186,47 @@ describe("driver-owned NVK/DXVK and downloaded Wine selection", () => {
       installed,
       "/prefix-nvk",
     ]);
+  });
+  it("rejects a D3D12 launch on an old provider before changing prefix DLLs", async () => {
+    await expect(
+      prepareNVKPrefix({ prefix: "/prefix", attributes: {} }, true)
+    ).rejects.toThrow("containing vkd3d-proton");
+    expect(
+      vi
+        .mocked(exec)
+        .mock.calls.some(call => (call[0] as string[])[1] === "install-d3d12")
+    ).toBe(false);
+  });
+  it("installs the D3D12 pair only when requested and available", async () => {
+    manifest.vkd3d = { version: "3.1", source_revision: "upstream" };
+    const runtime = await prepareNVKPrefix(
+      { prefix: "/prefix", attributes: {} },
+      true
+    );
+    expect(runtime.supportsD3d12).toBe(true);
+    expect(exec).toHaveBeenCalledWith([
+      installed + "/bin/nvk-runtime",
+      "install-d3d12",
+      installed,
+      "/prefix",
+    ]);
+  });
+  it("checks conflicting game-local D3D12 overrides before modifying prefix files", async () => {
+    manifest.vkd3d = { version: "3.1", source_revision: "upstream" };
+    vi.mocked(Neutralino.filesystem.readDirectory).mockResolvedValue([
+      { entry: "d3d12.dll", type: "FILE" },
+    ]);
+    await expect(
+      prepareNVKGame(
+        { prefix: "/prefix", attributes: { renderBackend: "dxvk-nvk" } },
+        "/game",
+        { d3d12: true }
+      )
+    ).rejects.toThrow("existing d3d12.dll");
+    expect(
+      vi
+        .mocked(exec)
+        .mock.calls.some(call => (call[0] as string[])[1] === "install-d3d12")
+    ).toBe(false);
   });
 });

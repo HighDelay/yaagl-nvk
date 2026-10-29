@@ -49,7 +49,8 @@ export async function* launchGameProgram({
   const graphicsArgs = graphicsArguments(
     wine.attributes.renderBackend,
     wine.attributes.supportsD3d12,
-    config.useD3D12
+    config.useD3D12,
+    config.useNVKD3D12
   );
   args.push(...graphicsArgs);
   const cmd = `@echo off

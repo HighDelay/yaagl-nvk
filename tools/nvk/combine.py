@@ -58,7 +58,9 @@ contains no Wine, NVK or DXVK runtime, and there is no bundled renderer fallback
 Select Settings → Wine → NVIDIA NVK + DXVK (local, experimental).
 
 ZZZ and HSR Global gameplay are confirmed on RTX 2060 SUPER / Tahoe 26.7.1.
-GI and CN gameplay remain unqualified. These are global
+ZZZ D3D12 and DLSS SR are verified on the local candidate. The new driver build is held;
+old providers support D3D11 only. Optional D3D12/DLSS require a matching updated driver.
+Frame generation and ray tracing remain unqualified. GI and CN gameplay remain unqualified. These are global
 builds. See GUIDE.md for setup, runtime checks, rollback and validation limits.
 Driver dependency licenses and source records are in its Wine/NVK runtime.
 Wine's download identity and installed hashes are recorded in wine-nvk/nvk-wine.json
