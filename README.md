@@ -8,11 +8,13 @@ when a matching driver provider is installed. [Setup and test status](docs/NVK.m
 It uses NVK and the patched DXVK pair from `/Library/GPUBundles/nvmtl/wine`.
 The launcher archive contains no runtime; compatible Wine downloads on first setup.
 ZZZ and HSR Global gameplay, world rendering, characters and UI were confirmed on
-RTX 2060 SUPER / Tahoe 26.7.1. GI/CN gameplay and long-session stability still need testing. The
+RTX 2060 SUPER / Tahoe 26.7.1. **GI in-game rendering is confirmed on RTX 4060
+Laptop with Steam Patch and Timeout fix enabled.** CN gameplay and long-session
+stability still need testing. The
 existing YAAGL backends remain available. ZZZ D3D12 and DLSS SR Quality/HUD
 were also confirmed. Settings has separate D3D12, DLSS and HUD controls; DLSSG
-uses normal GPU checks and is not verified. The new driver build is currently
-held, so older providers support D3D11 only until that driver update is installed.
+uses normal GPU checks and is not verified. D3D12/DLSS require the 2.6.4
+Wine/NVK driver provider or newer.
 
 Based on [Yet another anime game launcher](https://github.com/yaagl/yet-another-anime-game-launcher).
 

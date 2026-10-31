@@ -32,6 +32,9 @@ matching driver **with the Wine/NVK runtime installed**.
 5. Choose/install the game directory and launch. D3D11, descriptor sets and the
    FPS/frame-time/device overlay are selected automatically. Use SDR and leave
    ReShade off for this backend.
+6. For **GI**, enable **Steam Patch** and **Timeout fix** in the launcher before
+   launching. Its current defaults leave both off; enable them after applying
+   recommended settings. Keep both off for the verified **HSR** configuration.
 
 **The launcher archive contains no Wine or graphics runtime.** Both NVK and the
 patched x64 `d3d11.dll` / `dxgi.dll` come from **`/Library/GPUBundles/nvmtl/wine`**.
@@ -50,9 +53,16 @@ No ordinary Wine tree, CrossOver installation, macOS certificates, hosts file or
 boot arguments change. The vendor release does not identify its exact CrossOver
 patch revision; the launcher does not redistribute that binary archive.
 
-The ZZZ package enables YAAGL's existing **Steam Patch** and **timeout fix** options;
-the tested ZZZ profile needed both for its separate startup crash. Both default
-off for HSR and GI. HSR uses its ordinary Jadeite route, with the required `--`
+The confirmed D3D11 launch configurations are:
+
+| Game | Steam Patch | Timeout fix | Confirmed hardware |
+| --- | --- | --- | --- |
+| ZZZ Global | On | On | RTX 2060 SUPER / Tahoe 26.7.1 |
+| HSR Global | Off | Off | RTX 2060 SUPER / Tahoe 26.7.1 |
+| GI | On | On | RTX 4060 Laptop GPU |
+
+The ZZZ package enables both options. HSR/GI currently default to off, so GI
+users must enable both manually. HSR uses its ordinary Jadeite route, with the required `--`
 separator before game arguments. An explicitly enabled Steam route also installs
 its helpers. **Apply Recommended Settings** preserves an already selected NVK
 profile and uses these game-specific defaults. Existing HSR/GI users can apply
@@ -62,7 +72,10 @@ ZZZ and HSR Global gameplay are confirmed on RTX 2060 SUPER / Tahoe 26.7.1,
 including world rendering, characters and UI. HSR 4.6.0 was confirmed after this
 startup repair, with Steam Patch and the timeout fix off. The supplied screenshots
 show about 60 FPS; they are not a controlled performance comparison.
-**GI and CN gameplay remain unqualified.**
+On 2026-10-31, the user also confirmed GI startup and in-world rendering with
+both options enabled. The photo shows native NVK/Mesa 26.3.0-devel on RTX 4060
+Laptop with characters, scenery and UI. OS/Wine versions were not supplied.
+**CN gameplay remains unqualified.**
 
 ## Rendering settings and logs
 
@@ -94,12 +107,10 @@ RTX 2060 SUPER / Tahoe 26.7.1. Native tests cover DXIL shaders, readback, fences
 120 presentations and resize; DLSS evaluated three frames with 4,680 checked
 colour values and zero mismatches. These are correctness checks, not FPS gains.
 
-**Driver dependency:** the new driver build is held at the user's request.
-The currently published D3D11-only driver lacks D3D12/NGX components. This
-launcher release still supports that driver's existing D3D11 path, and refuses
+**Driver dependency:** D3D12/NGX require the 2.6.4 Wine/NVK provider or newer.
+This launcher still supports older providers' existing D3D11 path, and refuses
 requested new features with an update message before modifying prefix DLLs.
-It does not download a separate vkd3d/NGX runtime. After a matching driver is
-built, its source-integrated helper still needs final compiled rollback tests.
+It does not download a separate vkd3d/NGX runtime.
 For isolated testing, `YAAGL_NVK_RUNTIME_ROOT=/absolute/provider` selects a
 validated provider; normal launches use `/Library/GPUBundles/nvmtl/wine`.
 
