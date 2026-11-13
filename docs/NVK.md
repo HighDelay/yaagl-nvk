@@ -32,9 +32,10 @@ matching driver **with the Wine/NVK runtime installed**.
 5. Choose/install the game directory and launch. D3D11, descriptor sets and the
    FPS/frame-time/device overlay are selected automatically. Use SDR and leave
    ReShade off for this backend.
-6. For **GI**, enable **Steam Patch** and **Timeout fix** in the launcher before
-   launching. Its current defaults leave both off; enable them after applying
-   recommended settings. Keep both off for the verified **HSR** configuration.
+6. **Steam Patch** and **Timeout fix** default on for **GI and ZZZ**, including
+   **Apply Recommended Settings**. Existing saved choices are preserved; apply
+   recommended settings to enable both in an older GI profile. Keep both off for
+   the verified **HSR** configuration.
 
 **The launcher archive contains no Wine or graphics runtime.** Both NVK and the
 patched x64 `d3d11.dll` / `dxgi.dll` come from **`/Library/GPUBundles/nvmtl/wine`**.
@@ -61,11 +62,11 @@ The confirmed D3D11 launch configurations are:
 | HSR Global | Off | Off | RTX 2060 SUPER / Tahoe 26.7.1 |
 | GI | On | On | RTX 4060 Laptop GPU |
 
-The ZZZ package enables both options. HSR/GI currently default to off, so GI
-users must enable both manually. HSR uses its ordinary Jadeite route, with the required `--`
+The ZZZ and GI packages enable both options; HSR defaults to off.
+HSR uses its ordinary Jadeite route, with the required `--`
 separator before game arguments. An explicitly enabled Steam route also installs
 its helpers. **Apply Recommended Settings** preserves an already selected NVK
-profile and uses these game-specific defaults. Existing HSR/GI users can apply
+profile and uses these game-specific defaults. Existing users can apply
 those settings without replacing their NVK prefix.
 
 ZZZ and HSR Global gameplay are confirmed on RTX 2060 SUPER / Tahoe 26.7.1,
@@ -76,6 +77,26 @@ On 2026-10-31, the user also confirmed GI startup and in-world rendering with
 both options enabled. The photo shows native NVK/Mesa 26.3.0-devel on RTX 4060
 Laptop with characters, scenery and UI. OS/Wine versions were not supplied.
 **CN gameplay remains unqualified.**
+
+## Wine MSync
+
+All launchers set **`WINEMSYNC=1`** for Wine's Mach-based synchronization,
+including prefix initialization, configuration, registry setup/rollback helpers,
+games and wineserver commands. This replaces the old `WINEESYNC` launch setting,
+which the pinned macOS Wine 11.0-1 build does not implement. Using the same mode
+from the first Wine helper avoids starting a mismatched wineserver session.
+No Start-command environment override is needed.
+
+On RTX 2060 SUPER / Tahoe 26.7.1 / Wine 11.0-1, the user reported ZZZ D3D11/DXVK
+at **1080p High improving from 41–50 to 60–74 FPS** after enabling MSync and
+restarting the session. Logs and process samples confirmed MSync was active.
+This is a user-reported comparison, not an automated benchmark or a guaranteed
+gain in other games. CN gameplay and commercial CrossOver remain unqualified.
+
+Close the game's Wine processes before changing synchronization modes; stop
+only that launcher's private prefix. MSync must be supported by the selected
+Wine build. [Standalone Wine and CrossOver setup](https://github.com/HighDelay/nvidia-macos-driver-nvk/blob/main/nvk/wine-macos/INSTALL.md#wine-msync)
+documents the equivalent scoped configuration outside YAAGL.
 
 ## Rendering settings and logs
 
@@ -150,7 +171,7 @@ NVK/NVIDIA device rather than that emulated vendor alone.
 Quit the game and its Wine processes. From a game launcher's folder:
 
 ```sh
-/Library/GPUBundles/nvmtl/wine/bin/nvk-runtime restore \
+env WINEMSYNC=1 /Library/GPUBundles/nvmtl/wine/bin/nvk-runtime restore \
   /Library/GPUBundles/nvmtl/wine "$(pwd)/launcher-data/wineprefix-nvk" \
   "$(pwd)/launcher-data/wine-nvk/bin/wine"
 ```
@@ -175,7 +196,7 @@ python3 tools/nvk/package.py --game gi --region global --output /absolute/new/YA
 python3 tools/nvk/package.py --game hsr --region global --output /absolute/new/YAAGL-NVK-HSR
 python3 tools/nvk/combine.py \
   --zzz /absolute/new/YAAGL-NVK-ZZZ --gi /absolute/new/YAAGL-NVK-GI \
-  --hsr /absolute/new/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.2.0
+  --hsr /absolute/new/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.2.1
 ```
 
 Use `--region cn` for CN builds. The combiner verifies fresh launcher file hashes
@@ -197,5 +218,6 @@ it checks repeat setup, tamper detection and preservation of ordinary Wine.
 Set `YAAGL_TEST_WINE_ARCHIVE` and a fresh `YAAGL_TEST_WINE_WORK` to run it.
 
 These checks do not replace sustained gameplay, video/scene-transition and repeat
-launch testing. GI and CN still need actual gameplay tests. A controlled performance
-comparison and commercial CrossOver qualification have not been done.
+launch testing. GI in-world rendering is user-confirmed as described above;
+CN gameplay, an automated performance comparison and commercial CrossOver
+qualification have not been done.

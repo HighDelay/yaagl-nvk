@@ -89,13 +89,16 @@ describe("driver-owned NVK/DXVK and downloaded Wine selection", () => {
       attributes: { renderBackend: "dxvk-nvk" as const },
     };
     await prepareNVKGame(wine, "/game", { d3d12: true, dlss: true });
-    expect(exec).toHaveBeenCalledWith([
-      installed + "/bin/nvk-runtime",
-      "install-dlss",
-      installed,
-      "/prefix",
-      "/launcher/wine-nvk/bin/wine",
-    ]);
+    expect(exec).toHaveBeenCalledWith(
+      [
+        installed + "/bin/nvk-runtime",
+        "install-dlss",
+        installed,
+        "/prefix",
+        "/launcher/wine-nvk/bin/wine",
+      ],
+      { WINEMSYNC: "1" }
+    );
     vi.mocked(exec).mockClear();
     vi.mocked(fileOrDirExists).mockResolvedValue(true);
     await prepareNVKGame(wine, "/game", { d3d12: true, dlss: false });
@@ -113,6 +116,7 @@ describe("driver-owned NVK/DXVK and downloaded Wine selection", () => {
       ],
       [installed + "/bin/nvk-runtime", "install-d3d12", installed, "/prefix"],
     ]);
+    expect(exec).toHaveBeenCalledWith(mutations[0], { WINEMSYNC: "1" });
   });
   it("refuses a different game-local NGX DLL but leaves the game's DLSS feature DLL alone", async () => {
     manifest.vkd3d = { version: "3.1", source_revision: "upstream" };
@@ -136,13 +140,16 @@ describe("driver-owned NVK/DXVK and downloaded Wine selection", () => {
       "/game",
       { d3d12: true, dlss: true }
     );
-    expect(exec).toHaveBeenCalledWith([
-      installed + "/bin/nvk-runtime",
-      "install-dlss",
-      installed,
-      "/prefix",
-      "/launcher/wine-nvk/bin/wine",
-    ]);
+    expect(exec).toHaveBeenCalledWith(
+      [
+        installed + "/bin/nvk-runtime",
+        "install-dlss",
+        installed,
+        "/prefix",
+        "/launcher/wine-nvk/bin/wine",
+      ],
+      { WINEMSYNC: "1" }
+    );
   });
   it("uses the installed provider and the separately prepared Wine loader", async () => {
     expect(await loadNVKRuntime()).toMatchObject({
@@ -180,12 +187,10 @@ describe("driver-owned NVK/DXVK and downloaded Wine selection", () => {
       attributes: { nvkRuntimeRoot: installed },
     };
     await prepareNVKPrefix(wine);
-    expect(exec).toHaveBeenCalledWith([
-      installed + "/bin/nvk-runtime",
-      "install",
-      installed,
-      "/prefix-nvk",
-    ]);
+    expect(exec).toHaveBeenCalledWith(
+      [installed + "/bin/nvk-runtime", "install", installed, "/prefix-nvk"],
+      { WINEMSYNC: "1" }
+    );
   });
   it("rejects a D3D12 launch on an old provider before changing prefix DLLs", async () => {
     await expect(
@@ -204,12 +209,10 @@ describe("driver-owned NVK/DXVK and downloaded Wine selection", () => {
       true
     );
     expect(runtime.supportsD3d12).toBe(true);
-    expect(exec).toHaveBeenCalledWith([
-      installed + "/bin/nvk-runtime",
-      "install-d3d12",
-      installed,
-      "/prefix",
-    ]);
+    expect(exec).toHaveBeenCalledWith(
+      [installed + "/bin/nvk-runtime", "install-d3d12", installed, "/prefix"],
+      { WINEMSYNC: "1" }
+    );
   });
   it("checks conflicting game-local D3D12 overrides before modifying prefix files", async () => {
     manifest.vkd3d = { version: "3.1", source_revision: "upstream" };

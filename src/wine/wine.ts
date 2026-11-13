@@ -17,6 +17,7 @@ import { dirname, join } from "path-browserify";
 import { WineDistribution } from "./distro";
 import { initializeNVKState, loadNVKRuntime, recordNVKLaunch } from "./nvk";
 import { nvkEnvironment, nvkPrefix } from "./nvk-contract";
+import { WINE_SYNC_ENV } from "./sync-environment";
 
 export async function createWine(options: {
   prefix: string;
@@ -122,6 +123,7 @@ export async function createWine(options: {
   ) {
     const base = {
       ...nvkHostOptions,
+      ...WINE_SYNC_ENV,
       WINEDEBUG: "fixme-all,err-unwind,+timestamp",
       WINEPREFIX: selectedPrefix,
       ...extra,

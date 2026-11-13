@@ -23,9 +23,9 @@ export async function applyRecommendedSettings(
   }
 
   if (native) {
-    // These startup workarounds were tested for ZZZ. HSR and GI use their
-    // ordinary routes unless the user explicitly enables an option.
-    const workarounds = channelClient === "napos" || channelClient === "napcn";
+    // ZZZ and GI use their confirmed startup workarounds; HSR keeps Jadeite.
+    const workarounds =
+      channelClient.startsWith("nap") || channelClient.startsWith("hk4e");
     await setKey("config_steam_patch", String(workarounds));
     await setKey("config_timeout_fix", String(workarounds));
     await setKey("config_block_net", "false");

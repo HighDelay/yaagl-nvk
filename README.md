@@ -16,6 +16,12 @@ were also confirmed. Settings has separate D3D12, DLSS and HUD controls; DLSSG
 uses normal GPU checks and is not verified. D3D12/DLSS require the 2.6.4
 Wine/NVK driver provider or newer.
 
+All launchers enable **`WINEMSYNC=1`** from Wine prefix setup through game launch.
+ZZZ at 1080p High improved from 41–50 to 60–74 FPS in the user's MSync comparison
+on RTX 2060 SUPER / Tahoe 26.7.1; results vary by workload. **Steam Patch** and
+**Timeout fix** now default on for GI and ZZZ, and off for HSR. Existing saved
+choices remain; use **Apply Recommended Settings** to update an older GI profile.
+
 Based on [Yet another anime game launcher](https://github.com/yaagl/yet-another-anime-game-launcher).
 
 ## Current Supported Game Version:

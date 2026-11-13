@@ -116,7 +116,6 @@ cd /d "${wine.toWinePath(gameDir)}"
         WINE_ENABLE_TIMEOUT_FIX: config.timeoutFix ? "1" : "0",
         ...(wine.attributes.renderBackend == "dxmt"
           ? {
-              WINEMSYNC: "1",
               DXMT_LOG_PATH: yaaglDir,
               ...(preferredMaxFrameRate > 0
                 ? {
@@ -126,9 +125,7 @@ cd /d "${wine.toWinePath(gameDir)}"
               DXMT_CONFIG_FILE: join(yaaglDir, "dxmt.conf"),
               GST_PLUGIN_FEATURE_RANK: "atdec:MAX,avdec_h264:MAX",
             }
-          : {
-              WINEESYNC: "1",
-            }),
+          : {}),
         ...(config.proxyEnabled
           ? {
               HTTP_PROXY: config.proxyHost,

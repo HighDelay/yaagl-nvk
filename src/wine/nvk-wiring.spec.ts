@@ -54,6 +54,7 @@ describe("actual Wine factory dispatch", () => {
       "-u",
     ]);
     expect(bootstrap[1]).toMatchObject({
+      WINEMSYNC: "1",
       WINEPREFIX: "/Volumes/Games/launcher/wineprefix-nvk",
       DYLD_LIBRARY_PATH: "/Library/GPUBundles/nvmtl/wine/lib",
       WINEDLLOVERRIDES: "",
@@ -69,6 +70,7 @@ describe("actual Wine factory dispatch", () => {
     );
     const game = vi.mocked(exec2).mock.calls[0];
     expect(game[1]).toMatchObject({
+      WINEMSYNC: "1",
       WINEDLLOVERRIDES: "wininet=b;d3d11,dxgi=n",
       HTTP_PROXY: "http://localhost:8080",
       DXVK_LOG_PATH: "/Volumes/Games/game.log.nvk",
@@ -79,6 +81,10 @@ describe("actual Wine factory dispatch", () => {
       "/Volumes/Games/launcher/wine-nvk/bin/wineserver",
       "-k",
     ]);
+    await wine.waitUntilServerOff();
+    for (const call of vi.mocked(exec2).mock.calls) {
+      expect(call[1]).toMatchObject({ WINEMSYNC: "1" });
+    }
     expect(wine.prefix).toBe("/Volumes/Games/launcher/wineprefix-nvk");
     expect(wine.attributes).toMatchObject({
       nvkRuntimeRoot: "/Library/GPUBundles/nvmtl/wine",
@@ -97,9 +103,12 @@ describe("actual Wine factory dispatch", () => {
       },
     });
     await wine.setProps({ retina: false, leftCmd: false, dxvkHud: false });
+    expect(vi.mocked(exec).mock.calls[0][1]).toMatchObject({ WINEMSYNC: "1" });
+    expect(vi.mocked(exec2).mock.calls[0][1]).toMatchObject({ WINEMSYNC: "1" });
     vi.mocked(exec2).mockClear();
     await wine.exec2("game.exe", [], { WINEDLLOVERRIDES: "d3d11=b" });
     expect(vi.mocked(exec2).mock.calls[0][1]).toMatchObject({
+      WINEMSYNC: "1",
       WINEPREFIX: "/Volumes/Games/launcher/wineprefix",
       WINEDLLOVERRIDES: "d3d11=b",
     });

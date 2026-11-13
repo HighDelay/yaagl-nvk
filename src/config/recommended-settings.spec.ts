@@ -46,7 +46,9 @@ describe("recommended Wine and launch settings", () => {
       expect(
         vi.mocked(setKey).mock.calls.some(([key]) => key.startsWith("wine_"))
       ).toBe(false);
-      const expected = String(channel.startsWith("nap"));
+      const expected = String(
+        channel.startsWith("nap") || channel.startsWith("hk4e")
+      );
       expect(storage.get("config_steam_patch")).toBe(expected);
       expect(storage.get("config_timeout_fix")).toBe(expected);
       expect(storage.get("config_block_net")).toBe("false");

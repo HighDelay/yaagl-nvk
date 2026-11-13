@@ -2,6 +2,7 @@ import { join } from "path-browserify";
 import { exec, fileOrDirExists, mkdirp, resolve, writeFile } from "@utils";
 import type { Wine } from "./wine";
 import { loadNVKWine } from "./nvk-wine";
+import { WINE_SYNC_ENV } from "./sync-environment";
 
 export interface NVKRuntime {
   root: string;
@@ -102,12 +103,15 @@ export async function prepareNVKPrefix(
     throw new Error(
       "Update the driver Wine/NVK runtime to a build containing vkd3d-proton for D3D12."
     );
-  await exec([
-    runtime.helper,
-    d3d12 ? "install-d3d12" : "install",
-    runtime.root,
-    wine.prefix,
-  ]);
+  await exec(
+    [
+      runtime.helper,
+      d3d12 ? "install-d3d12" : "install",
+      runtime.root,
+      wine.prefix,
+    ],
+    WINE_SYNC_ENV
+  );
   return runtime;
 }
 
@@ -142,21 +146,21 @@ export async function prepareNVKGame(
     !dlss &&
     (await fileOrDirExists(join(wine.prefix, ".nvk-dlss-state.json")))
   ) {
-    await exec([
+    await exec(
+      [runtime.helper, "restore-dlss", runtime.root, wine.prefix, runtime.wine],
+      WINE_SYNC_ENV
+    );
+  }
+  await exec(
+    [
       runtime.helper,
-      "restore-dlss",
+      dlss ? "install-dlss" : options.d3d12 ? "install-d3d12" : "install",
       runtime.root,
       wine.prefix,
-      runtime.wine,
-    ]);
-  }
-  await exec([
-    runtime.helper,
-    dlss ? "install-dlss" : options.d3d12 ? "install-d3d12" : "install",
-    runtime.root,
-    wine.prefix,
-    ...(dlss ? [runtime.wine] : []),
-  ]);
+      ...(dlss ? [runtime.wine] : []),
+    ],
+    WINE_SYNC_ENV
+  );
 }
 
 export async function checkNVKGameDirectory(

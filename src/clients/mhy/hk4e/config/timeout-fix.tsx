@@ -22,7 +22,7 @@ export default async function ({
   try {
     config.timeoutFix = (await getKey(CONFIG_KEY)) == "true";
   } catch {
-    config.timeoutFix = false; // default value
+    config.timeoutFix = true; // default value
   }
 
   const [value, setValue] = createSignal(config.timeoutFix);

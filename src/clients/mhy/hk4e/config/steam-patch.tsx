@@ -22,7 +22,7 @@ export default async function ({
   try {
     config.steamPatch = (await getKey(CONFIG_KEY)) == "true";
   } catch {
-    config.steamPatch = false; // default value
+    config.steamPatch = true; // default value
   }
 
   const [value, setValue] = createSignal(config.steamPatch);

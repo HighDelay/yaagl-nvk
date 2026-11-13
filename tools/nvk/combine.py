@@ -56,11 +56,15 @@ Install HighDelay's matching NVIDIA driver first. The NVK backend requires
 downloads and prepares the pinned Wine 11.0-1 build on first setup. This archive
 contains no Wine, NVK or DXVK runtime, and there is no bundled renderer fallback.
 Select Settings → Wine → NVIDIA NVK + DXVK (local, experimental).
+Wine helpers and games use WINEMSYNC=1. Steam Patch and Timeout fix default
+on for ZZZ/GI and off for HSR. Apply Recommended Settings to update older
+GI preferences while keeping the NVK profile.
 
 ZZZ and HSR Global gameplay are confirmed on RTX 2060 SUPER / Tahoe 26.7.1.
-ZZZ D3D12 and DLSS SR are verified on the local candidate. The new driver build is held;
-old providers support D3D11 only. Optional D3D12/DLSS require a matching updated driver.
-Frame generation and ray tracing remain unqualified. GI and CN gameplay remain unqualified. These are global
+ZZZ D3D12 and DLSS SR are also user-confirmed; they require the 2.6.4 Wine/NVK
+driver provider or newer. GI in-world rendering is user-confirmed on RTX 4060
+Laptop with Steam Patch and Timeout fix enabled. Frame generation, ray tracing,
+CN gameplay and sustained sessions remain unqualified. These are global
 builds. See GUIDE.md for setup, runtime checks, rollback and validation limits.
 Driver dependency licenses and source records are in its Wine/NVK runtime.
 Wine's download identity and installed hashes are recorded in wine-nvk/nvk-wine.json
