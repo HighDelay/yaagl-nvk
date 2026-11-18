@@ -10,7 +10,7 @@ import shutil
 import subprocess
 
 repo = Path(__file__).resolve().parents[2]
-version = "0.2.1"
+version = "0.2.2"
 games = {
     "zzz": {"name": "ZZZ", "channel": "nap", "icon": "ZZZ_Bang.cr.png"},
     "gi": {"name": "Genshin Impact", "channel": "hk4e", "icon": "Paimon.cr.png"},
@@ -40,8 +40,18 @@ data.mkdir()
 shutil.copytree(repo / "dist", data / "dist")
 shutil.copyfile(repo / "neutralino.js", data / "dist/neutralino.js")
 shutil.copytree(repo / "sidecar", data / "sidecar", symlinks=True,
-                ignore=shutil.ignore_patterns("*.original", ".DS_Store"))
-shutil.copytree(repo / "src/icons", data / "src/icons")
+                ignore=shutil.ignore_patterns("*.original", ".DS_Store", "._*"))
+helper_signing = []
+for relative in ("sidecar/aria2/aria2c", "sidecar/xdelta/xdelta3"):
+    helper = data / relative
+    original = hashlib.sha256(helper.read_bytes()).hexdigest()
+    subprocess.run(["codesign", "--force", "--sign", "-", "--timestamp=none", str(helper)], check=True)
+    subprocess.run(["codesign", "--verify", "--strict", str(helper)], check=True)
+    helper_signing.append({"path": "launcher-data/" + relative, "source_sha256": original,
+                           "packaged_sha256": hashlib.sha256(helper.read_bytes()).hexdigest(),
+                           "identity": "ad-hoc; upstream executable code unchanged"})
+shutil.copytree(repo / "src/icons", data / "src/icons",
+                ignore=shutil.ignore_patterns(".DS_Store", "._*"))
 config = json.loads((repo / "neutralino.config.json").read_text())
 config["applicationId"] = "com.highdelay.yaagl.nvk." + channel
 config["version"] = version
@@ -86,13 +96,13 @@ for path in sorted(delivered):
     if path.is_file() and not path.is_symlink():
         with path.open("rb") as stream:
             files[str(path.relative_to(root))] = hashlib.file_digest(stream, "sha256").hexdigest()
-record = {"version": version, "game": args.game, "region": args.region, "channel": channel, "root": str(root),
-          "application": str(app), "data_root": str(data), "game_install_dir": game_dir,
+record = {"version": version, "game": args.game, "region": args.region, "channel": channel, "root": ".",
+          "application": app_name, "data_root": "launcher-data", "game_install_dir": game_dir,
           "default_provider": "/Library/GPUBundles/nvmtl/wine", "requires_installed_provider": True,
           "bundled_runtime": False, "bundled_wine": False, "bundled_dxvk": False,
           "yaagl_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
           "sophon_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo / "vendor/SophonClientv3", text=True).strip(),
           "source_diff": subprocess.check_output(["git", "diff", "--binary", "HEAD"], cwd=repo, text=True),
-          "files": files, "validation": {"gameplay": "NOT RUN"}}
+          "helper_signing": helper_signing, "files": files, "validation": {"gameplay": "NOT RUN"}}
 (root / "LAUNCHER-BUILD.json").write_text(json.dumps(record, indent=2) + "\n")
 print(json.dumps({"root": str(root), "channel": channel, "application": str(app)}, indent=2))

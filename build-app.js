@@ -97,7 +97,7 @@ const { IconIcns } = require("@shockpkg/icon-encoder");
   }
 
   const appname = config.cli.binaryName;
-  const binaryName = `${config.cli.binaryName}-mac_x64`;
+  const binaryName = `${config.cli.binaryName}-mac_universal`;
 
   // read package.json
   const pkg = await fs.readJSON(path.resolve(process.cwd(), "package.json"));
@@ -322,7 +322,7 @@ PATH_LAUNCH="$(dirname "$CONTENTS_DIR")" exec "$SCRIPT_DIR/${appname}" --path="$
         <key>NSHumanReadableCopyright</key>
         <string>Copyright © 2023 3Shain.</string>
         <key>LSMinimumSystemVersion</key>
-        <string>${includeSophon ? "13.0" : "10.15.0"}</string>
+        <string>14.0</string>
         <key>NSAppTransportSecurity</key>
         <dict>
             <key>NSAllowsArbitraryLoads</key>

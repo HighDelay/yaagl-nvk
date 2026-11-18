@@ -16,6 +16,7 @@ import {
   fileOrDirExists,
   getKeyOrDefault,
   _safeRelaunch,
+  exit,
 } from "@utils";
 import { ENSURE_HOSTS } from "../clients/secret";
 import { ensureHosts } from "../hosts";
@@ -237,7 +238,7 @@ export async function createWineInstallProgram({
             await _safeRelaunch();
             return;
           }
-          await Neutralino.app.exit(0);
+          await exit(0);
         },
       });
     }

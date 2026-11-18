@@ -1,5 +1,6 @@
 import { resolve as resolvePath } from "path-browserify";
 import { build, CommandSegments, rawString } from "./command-builder";
+import { wait } from "./helper";
 
 export function resolve(path: string): string {
   if (!path.startsWith("/")) {
@@ -173,7 +174,7 @@ export async function fatal(error: unknown) {
     "OK"
   );
   await shutdown();
-  Neutralino.app.exit(-1);
+  await exit(-1);
 }
 
 export async function appendFile(path: string, content: string) {
@@ -315,7 +316,12 @@ export async function env(key: string) {
   return Neutralino.os.getEnv(key);
 }
 
-export function exit(exitCode: number) {
+export async function exit(exitCode = 0) {
+  if (window.NL_OS === "Darwin") {
+    // Avoid Neutralino's macOS window teardown crash after cleanup.
+    await wait(100);
+    return Neutralino.app.killProcess();
+  }
   return Neutralino.app.exit(exitCode);
 }
 
@@ -406,17 +412,53 @@ export async function shutdown() {
   }
 }
 
+let relaunching = false;
+
 export async function _safeRelaunch() {
-  await shutdown();
-  // await wait(1000);
-  // HACK
-  if (import.meta.env.PROD) {
-    const app = await Neutralino.os.getEnv("PATH_LAUNCH");
-    await Neutralino.os.execCommand(`open "${app}"`, {
-      background: true,
-    });
-    Neutralino.app.exit(0);
-  } else {
-    Neutralino.app.restartProcess();
+  if (relaunching) return;
+  relaunching = true;
+  let handoffPID = 0;
+  try {
+    const launch = import.meta.env.PROD
+      ? ["/usr/bin/open", "-n", await Neutralino.os.getEnv("PATH_LAUNCH")]
+      : window.NL_ARGS;
+    if (!launch[0] || (import.meta.env.PROD && !launch[2]))
+      throw new Error("Launcher path is missing");
+    if (
+      import.meta.env.PROD &&
+      window.NL_APPID?.startsWith("com.highdelay.yaagl.nvk.")
+    ) {
+      // Preserve the writable package location when LaunchServices relocates
+      // the downloaded app during a restart, just as the Start command does.
+      launch.push("--args", "--yaagl-root", resolve(".."));
+    }
+    await shutdown();
+    // Reopen only after the old launcher exits, with its arguments intact.
+    const command = [
+      "/usr/bin/nohup",
+      "/bin/sh",
+      "-c",
+      'while kill -0 "$1" 2>/dev/null; do sleep 0.1; done; shift; exec "$@"',
+      "yaagl-restart",
+      String(window.NL_PID),
+      ...launch,
+    ]
+      .map(arg => `'${arg.replaceAll("'", "'\\''")}'`)
+      .join(" ");
+    const { pid } = await Neutralino.os.execCommand(
+      `exec ${command} </dev/null >/dev/null 2>&1`,
+      { background: true }
+    );
+    handoffPID = pid;
+    await exit(0);
+  } catch (error) {
+    if (handoffPID > 0) {
+      await Neutralino.os
+        .execCommand(build(["kill", String(handoffPID)]))
+        .catch(() => undefined);
+    }
+    throw error;
+  } finally {
+    relaunching = false;
   }
 }

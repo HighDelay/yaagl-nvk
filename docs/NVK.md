@@ -8,9 +8,9 @@ D3D11 game → DXVK → Wine Vulkan bridge → native NVK → NVIDIA GPU
 ```
 
 Game rendering bypasses MoltenVK and NVMTL shader conversion. Wine, DXVK's
-D3D11/SPIR-V conversion and NVK compilation remain. Completed frames use a GPU
-copy into a macOS Metal drawable, with a CPU completion wait. Fewer layers do not
-establish a measured FPS gain.
+D3D11/SPIR-V conversion and NVK compilation remain. The installed driver handles
+GPU-copy presentation into macOS Metal drawables. Fewer layers do not establish
+a measured FPS gain.
 
 ## Install
 
@@ -186,7 +186,12 @@ losing originals. Selecting another Wine distribution uses its ordinary prefix.
 ## Build
 
 Configure dependencies, Neutralino and Sophon using YAAGL's build tooling. Use
-Python 3.12+ and Xcode command line tools. Build each frontend sequentially because
+Node 22+, pnpm 9 with the frozen lockfile, Python 3.12+ and Xcode command line tools.
+The NVK launcher targets Intel; `./build-sophon.sh --arch x86_64` builds its helper
+on a Command Line Tools host. Calling that script without arguments retains
+upstream's universal build, which needs full Xcode. Additional explicit Swift
+build arguments can select job counts and private cache/output locations.
+Build each frontend sequentially because
 Vite shares `dist/`. Fresh package folders are required; omit `--game-dir` for a
 release so recipients choose their own game location.
 
@@ -196,7 +201,7 @@ python3 tools/nvk/package.py --game gi --region global --output /absolute/new/YA
 python3 tools/nvk/package.py --game hsr --region global --output /absolute/new/YAAGL-NVK-HSR
 python3 tools/nvk/combine.py \
   --zzz /absolute/new/YAAGL-NVK-ZZZ --gi /absolute/new/YAAGL-NVK-GI \
-  --hsr /absolute/new/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.2.1
+  --hsr /absolute/new/YAAGL-NVK-HSR --output /absolute/new/YAAGL-NVK-0.2.2
 ```
 
 Use `--region cn` for CN builds. The combiner verifies fresh launcher file hashes

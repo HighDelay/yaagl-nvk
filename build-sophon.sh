@@ -2,7 +2,14 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-sophon_build=(--package-path vendor/SophonClientv3 -c release --product SophonCLI --arch arm64 --arch x86_64)
+sophon_build=(--package-path vendor/SophonClientv3 -c release --product SophonCLI)
+if [ "$#" -eq 0 ]; then
+  sophon_build+=(--arch arm64 --arch x86_64)
+else
+  # Explicit Swift build arguments also support Intel-only Command Line Tools
+  # hosts, where a multi-architecture build would require Xcode's xcbuild.
+  sophon_build+=("$@")
+fi
 swift build "${sophon_build[@]}"
 sophon_bin="$(swift build "${sophon_build[@]}" --show-bin-path)"
 sophon_dist="$PWD/sidecar/sophon"
@@ -10,6 +17,7 @@ sophon_dist="$PWD/sidecar/sophon"
 rm -rf "$sophon_dist"
 mkdir -p "$sophon_dist"
 cp "$sophon_bin/SophonCLI" "$sophon_dist/SophonCLI"
+cp vendor/SophonClientv3/LICENSE "$sophon_dist/LICENSE"
 xcrun swift-stdlib-tool --copy --scan-executable "$sophon_dist/SophonCLI" \
   --destination "$sophon_dist" --platform macosx --sign -
 rm -f "$sophon_dist"/*.dylib.original
