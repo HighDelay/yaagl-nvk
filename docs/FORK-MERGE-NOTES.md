@@ -27,6 +27,10 @@ Keep the fork's launcher/provider contract when merging upstream:
   persistent data. Keep source identity/checksum verification, a shared update
   lock, verified staging/backups, automatic failure recovery and guarded rollback.
   Updating or rolling back must retain data modified since the last program update.
+- Preserve aria2 download recovery: retry a failed/removed task by clearing only
+  that task's result, resume paused jobs, and follow active/queued jobs without
+  adding duplicates. Completed downloads are reusable only while their output
+  exists. Keep the original server error visible and avoid polling without a delay.
 
 Build Global and CN archives containing ZZZ, GI and HSR with `tools/nvk/`.
 Record source identities and hashes for rebuilt/reused helpers. Keep public

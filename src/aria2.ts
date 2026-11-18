@@ -1,5 +1,5 @@
 import { WebSocket as RPC } from "libaria2-ts";
-import { log, sha256_16, wait, timeout } from "./utils";
+import { fileOrDirExists, log, sha256_16, wait, timeout } from "./utils";
 
 export async function createAria2({
   host,
@@ -19,23 +19,28 @@ export async function createAria2({
     return rpc.shutdown();
   }
 
-  async function* doStreaming(gid: string) {
+  async function* doStreaming(gid: string, uri: string) {
     while (true) {
       const status = await rpc.tellStatus(gid);
       if (status.status == "complete") {
         break;
       }
-      if (status.status == "error") {
+      if (status.status == "error" || status.status == "removed") {
         const errorDetail =
-          status.errorMessage ||
-          (status.errorCode
-            ? `Error Code ${status.errorCode}`
-            : "Unknown aria2 error");
+          status.status === "removed"
+            ? "Download was cancelled"
+            : status.errorMessage ||
+              (status.errorCode
+                ? `Error Code ${status.errorCode}`
+                : "Unknown aria2 error");
         throw new Error(
-          `Download failed: ${errorDetail}\n\nPlease reopen the launcher to try again.`
+          `Download failed from ${
+            new URL(uri).hostname
+          }: ${errorDetail}\n\nPlease try again once the download server is reachable.`
         );
       }
       if (status.totalLength == BigInt(0)) {
+        await wait(100);
         continue;
       }
       yield status;
@@ -49,30 +54,40 @@ export async function createAria2({
     checksum?: string;
   }) {
     const gid = await sha256_16(`${options.uri}:${options.absDst}`);
+    let status;
     try {
-      const status = await rpc.tellStatus(gid);
-      if (status.status == "paused") {
-        await rpc.unpause(gid);
-      } else if (status.status == "complete") {
-        return;
-      } else {
-        throw new Error("FIXME: implmenet me (aria2.ts) " + status.status);
-      }
+      status = await rpc.tellStatus(gid);
     } catch (e: unknown) {
-      if (typeof e == "object" && e != null && "code" in e && e["code"] == 1) {
-        await rpc.addUri(options.uri, {
-          gid,
-          "max-connection-per-server": 16,
-          out: options.absDst,
-          continue: false,
-          "allow-overwrite": true, // in case control file broken
-          ...(options.checksum ? { checksum: options.checksum } : {}),
-        });
-      } else {
+      if (!(typeof e == "object" && e != null && "code" in e && e["code"] == 1))
         throw e;
-      }
     }
-    return yield* doStreaming(gid);
+
+    if (
+      status?.status === "complete" &&
+      (await fileOrDirExists(options.absDst))
+    )
+      return;
+    if (status && ["error", "removed", "complete"].includes(status.status)) {
+      // A failed task remains in aria2's result history. Clear only this task
+      // before retrying, including a completed task whose output was removed.
+      await rpc.removeDownloadResult(gid);
+      status = undefined;
+    }
+    if (!status) {
+      await rpc.addUri(options.uri, {
+        gid,
+        "max-connection-per-server": 16,
+        out: options.absDst,
+        continue: false,
+        "allow-overwrite": true, // in case control file broken
+        ...(options.checksum ? { checksum: options.checksum } : {}),
+      });
+    } else if (status.status === "paused") {
+      await rpc.unpause(gid);
+    } else if (status.status !== "active" && status.status !== "waiting") {
+      throw new Error(`Cannot resume download in state: ${status.status}`);
+    }
+    return yield* doStreaming(gid, options.uri);
   }
 
   return {
