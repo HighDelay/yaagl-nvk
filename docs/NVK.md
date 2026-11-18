@@ -43,6 +43,43 @@ game's startup host and can request administrator authentication. Existing saved
 choices are retained; apply recommended settings to enable it in an older profile.
 HSR's Steam Patch and Timeout fix remain off by default.
 
+## Update an existing launcher
+
+1. Quit the installed launchers and their games. Extract the new archive into a
+   separate folder.
+2. Run **Update YAAGL NVK.command** from the new archive and choose your existing
+   YAAGL NVK folder. Select the combined folder to update all three games, or a
+   game folder to update only that game. Global and CN installations stay separate.
+3. Open the existing installation's Start command after the update finishes.
+
+The updater replaces the app, frontend, helper tools and setup documents. It keeps
+the existing Wine installations, `wineprefix-nvk`, other prefixes, `.storage`
+preferences, game location, account state, download progress, logs and shader
+caches in place. Saved HSR Launch Fix choices are preserved. No migration or
+second Wine download is required for an already configured installation.
+
+The command uses macOS's built-in tools. It verifies the incoming program files,
+checks the game/region, refuses a running launcher or a downgrade, and stages a
+verified backup before installing. An identical repeat update changes nothing.
+Failed installs restore the previous program files automatically.
+
+Backups are under `.yaagl-update-backups` in the existing installation. Run
+**Rollback YAAGL NVK.command** inside the chosen backup to restore the previous
+launcher program files. Prefixes and settings changed since the update are kept.
+Rollback refuses changed program files or a damaged backup. An interrupted update
+also leaves its recovery command there.
+
+Use this command when updating the combined package: Finder's **Replace** for
+the entire installation folder can remove `launcher-data` and its prefixes.
+Replacing only the `.app` leaves the external frontend/helpers at their previous
+version. The updater replaces those program files together.
+
+For a preview, run this from the newly extracted folder:
+
+```sh
+./Update\ YAAGL\ NVK.command --target /absolute/existing-folder --dry-run
+```
+
 **The launcher archive contains no Wine or graphics runtime.** Both NVK and the
 patched x64 `d3d11.dll` / `dxgi.dll` come from **`/Library/GPUBundles/nvmtl/wine`**.
 There is no bundled provider fallback or separate DXVK download. To update DXVK,

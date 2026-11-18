@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+from update_manifest import write_manifest
 
 parser = argparse.ArgumentParser(description=__doc__)
 for name in ("zzz", "gi", "hsr", "output"):
@@ -44,12 +45,25 @@ for game, source in sources.items():
     shutil.copytree(source, output / game, symlinks=True)
 shutil.copyfile(repo / "LICENSE", output / "YAAGL-LICENSE.txt")
 shutil.copyfile(repo / "docs/NVK.md", output / "GUIDE.md")
+shutil.copyfile(repo / "tools/nvk/update-launcher.sh", output / "Update YAAGL NVK.command")
+(output / "Update YAAGL NVK.command").chmod(0o755)
+shutil.copyfile(repo / "tools/nvk/update-launcher.js", output / "update-launcher.js")
 region = next(iter(records.values()))["region"]
 (output / "README.md").write_text("""# YAAGL NVK — ZZZ, GI and HSR
 
 Extract this entire folder. Open ZZZ, GI or HSR and use its Start YAAGL NVK.command.
 Each launcher keeps its own prefix, settings, logs and caches. Choose your game installation directory
 on first use; these builds contain no game files or account state.
+
+To update an existing installation, quit its launchers and games, extract this
+new archive into a separate folder, and run Update YAAGL NVK.command from here.
+Choose the existing combined folder to update all three games, or one game folder
+to update only that game. The command replaces program files while preserving
+Wine installations, prefixes, settings, accounts and caches. It verifies the
+incoming files and saves a rollback backup beside the existing installation.
+Use the Rollback YAAGL NVK.command in that backup to restore the old program files.
+Keep the existing installation folder when updating; Finder's whole-folder
+Replace can discard its launcher-data and Wine prefixes.
 
 Install HighDelay's matching NVIDIA driver first. The NVK backend requires
 /Library/GPUBundles/nvmtl/wine, including its matched DXVK pair. The launcher
@@ -76,4 +90,5 @@ record = {"version": next(iter(records.values()))["version"],
           "packaging_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
           "installed_provider": "/Library/GPUBundles/nvmtl/wine", "bundled_runtime": False, "games": records}
 (output / "COMBINED-BUILD.json").write_text(json.dumps(record, indent=2) + "\n")
+write_manifest(output)
 print(json.dumps({"root": str(output), "bundled_runtime": False, "games": list(records)}, indent=2))

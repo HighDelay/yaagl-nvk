@@ -8,6 +8,7 @@ from pathlib import Path
 import plistlib
 import shutil
 import subprocess
+from update_manifest import write_manifest
 
 repo = Path(__file__).resolve().parents[2]
 version = "0.2.2"
@@ -90,7 +91,12 @@ start.write_text((repo / "tools/nvk/start-launcher.sh").read_text().replace("@AP
 start.chmod(0o755)
 shutil.copyfile(repo / "LICENSE", root / "YAAGL-LICENSE.txt")
 shutil.copyfile(repo / "docs/NVK.md", root / "README.md")
-delivered = [*app.rglob("*"), *data.rglob("*"), start, root / "YAAGL-LICENSE.txt", root / "README.md"]
+update = root / "Update YAAGL NVK.command"
+shutil.copyfile(repo / "tools/nvk/update-launcher.sh", update)
+update.chmod(0o755)
+shutil.copyfile(repo / "tools/nvk/update-launcher.js", root / "update-launcher.js")
+delivered = [*app.rglob("*"), *data.rglob("*"), start, update, root / "update-launcher.js",
+             root / "YAAGL-LICENSE.txt", root / "README.md"]
 files = {}
 for path in sorted(delivered):
     if path.is_file() and not path.is_symlink():
@@ -103,6 +109,8 @@ record = {"version": version, "game": args.game, "region": args.region, "channel
           "yaagl_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
           "sophon_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo / "vendor/SophonClientv3", text=True).strip(),
           "source_diff": subprocess.check_output(["git", "diff", "--binary", "HEAD"], cwd=repo, text=True),
-          "helper_signing": helper_signing, "files": files, "validation": {"gameplay": "NOT RUN"}}
+          "helper_signing": helper_signing, "update_manifest": "UPDATE-MANIFEST.json",
+          "files": files, "validation": {"gameplay": "NOT RUN"}}
 (root / "LAUNCHER-BUILD.json").write_text(json.dumps(record, indent=2) + "\n")
+write_manifest(root)
 print(json.dumps({"root": str(root), "channel": channel, "application": str(app)}, indent=2))

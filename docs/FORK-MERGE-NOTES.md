@@ -22,6 +22,11 @@ Keep the fork's launcher/provider contract when merging upstream:
 - Keep upstream quit/restart cleanup and HSR manifest-based installation
   detection. Download-folder checks must use directory boundaries, including
   normalized paths, while allowing unrelated folders with similar names.
+- Preserve the macOS update command in both combined and per-game packages.
+  Its program manifest excludes Wine, prefixes, preferences and all other
+  persistent data. Keep source identity/checksum verification, a shared update
+  lock, verified staging/backups, automatic failure recovery and guarded rollback.
+  Updating or rolling back must retain data modified since the last program update.
 
 Build Global and CN archives containing ZZZ, GI and HSR with `tools/nvk/`.
 Record source identities and hashes for rebuilt/reused helpers. Keep public

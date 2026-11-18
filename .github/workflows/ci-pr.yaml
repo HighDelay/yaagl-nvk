@@ -48,5 +48,6 @@ jobs:
           ./configure.sh
           pnpm exec tsc
           pnpm exec vitest run --threads=false
+          node --test tools/nvk/test_update.cjs
           pnpm run format-check
           pnpm run lint
