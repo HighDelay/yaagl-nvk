@@ -10,6 +10,8 @@ Keep the fork's launcher/provider contract when merging upstream:
 - Preserve the selected NVK profile when applying recommended settings.
   Steam Patch and Timeout fix default on for ZZZ/GI and off for HSR; saved explicit
   choices survive updates. HSR retains its Jadeite route and argument separator.
+  HSR Launch Fix (`config_block_net`) defaults on for Global/CN, including first
+  setup and recommended settings; explicit saved choices survive ordinary loading.
 - D3D11 stays the default. ZZZ's D3D12 and DLSS controls remain independent,
   default-off choices; retain provider capability checks, separate rollback
   journals, private registry originals and HUD controls.

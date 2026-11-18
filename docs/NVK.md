@@ -37,6 +37,12 @@ matching driver **with the Wine/NVK runtime installed**.
    recommended settings to enable both in an older GI profile. Keep both off for
    the verified **HSR** configuration.
 
+**HSR Launch Fix (block hosts)** defaults on for both Global and CN, including
+custom first setup and Apply Recommended Settings. It temporarily blocks the
+game's startup host and can request administrator authentication. Existing saved
+choices are retained; apply recommended settings to enable it in an older profile.
+HSR's Steam Patch and Timeout fix remain off by default.
+
 **The launcher archive contains no Wine or graphics runtime.** Both NVK and the
 patched x64 `d3d11.dll` / `dxgi.dll` come from **`/Library/GPUBundles/nvmtl/wine`**.
 There is no bundled provider fallback or separate DXVK download. To update DXVK,

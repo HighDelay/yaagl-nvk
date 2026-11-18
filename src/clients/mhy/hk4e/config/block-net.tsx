@@ -22,7 +22,10 @@ export default async function ({
   try {
     config.blockNet = (await getKey(CONFIG_KEY)) == "true";
   } catch {
-    config.blockNet = false; // default value
+    // This component also serves the shared initial-setup screen.
+    config.blockNet = String(
+      import.meta.env["YAAGL_CHANNEL_CLIENT"]
+    ).startsWith("hkrpg");
   }
 
   const [value, setValue] = createSignal(config.blockNet);

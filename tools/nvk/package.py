@@ -62,7 +62,7 @@ game_dir = str(args.game_dir.resolve()) if args.game_dir else None
 storage = data / ".storage"
 storage.mkdir()
 initial = {"wine_state": "update", "wine_update_tag": "driver-nvk-wine-11.0-1",
-           "wine_update_url": "local://nvk-runtime", "config_block_net": "false"}
+           "wine_update_url": "local://nvk-runtime", "config_block_net": str(args.game == "hsr").lower()}
 if game_dir:
     initial["game_install_dir"] = game_dir
 workarounds = "true" if args.game in ("zzz", "gi") else "false"

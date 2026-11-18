@@ -22,7 +22,7 @@ export default async function ({
   try {
     config.blockNet = (await getKey(CONFIG_KEY)) == "true";
   } catch {
-    config.blockNet = false; // default value
+    config.blockNet = true; // HSR Launch Fix defaults on; keep saved choices.
   }
 
   const [value, setValue] = createSignal(config.blockNet);

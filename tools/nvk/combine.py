@@ -58,7 +58,9 @@ contains no Wine, NVK or DXVK runtime, and there is no bundled renderer fallback
 Select Settings → Wine → NVIDIA NVK + DXVK (local, experimental).
 Wine helpers and games use WINEMSYNC=1. Steam Patch and Timeout fix default
 on for ZZZ/GI and off for HSR. Apply Recommended Settings to update older
-GI preferences while keeping the NVK profile.
+GI preferences while keeping the NVK profile. HSR Launch Fix (block hosts)
+defaults on; saved choices are retained. Apply Recommended Settings to enable
+it in an existing HSR profile.
 
 ZZZ and HSR Global gameplay are confirmed on RTX 2060 SUPER / Tahoe 26.7.1.
 ZZZ D3D12 and DLSS SR are also user-confirmed; they require the 2.6.4 Wine/NVK

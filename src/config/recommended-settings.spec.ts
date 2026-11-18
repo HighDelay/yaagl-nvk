@@ -51,7 +51,9 @@ describe("recommended Wine and launch settings", () => {
       );
       expect(storage.get("config_steam_patch")).toBe(expected);
       expect(storage.get("config_timeout_fix")).toBe(expected);
-      expect(storage.get("config_block_net")).toBe("false");
+      expect(storage.get("config_block_net")).toBe(
+        String(channel.startsWith("hkrpg"))
+      );
     });
   }
 
@@ -62,6 +64,7 @@ describe("recommended Wine and launch settings", () => {
     expect(storage.get("wine_state")).toBe("update");
     expect(storage.get("wine_update_tag")).toBe(NVK_RUNTIME_ID);
     expect(storage.get("wine_update_url")).toBe("local://nvk-runtime");
+    expect(storage.get("config_block_net")).toBe("true");
   });
 
   it("repairs a pending ordinary-Wine recommendation for a selected NVK profile", async () => {

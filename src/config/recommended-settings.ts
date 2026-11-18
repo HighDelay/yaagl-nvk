@@ -28,7 +28,7 @@ export async function applyRecommendedSettings(
       channelClient.startsWith("nap") || channelClient.startsWith("hk4e");
     await setKey("config_steam_patch", String(workarounds));
     await setKey("config_timeout_fix", String(workarounds));
-    await setKey("config_block_net", "false");
+    await setKey("config_block_net", String(channelClient.startsWith("hkrpg")));
     return recommendedTag;
   }
 
